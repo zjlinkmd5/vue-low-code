@@ -1,0 +1,621 @@
+<script setup lang="ts">
+import { computed, ref, watch } from 'vue'
+import type { CanvasComponent } from '@/types'
+import { useCanvas } from '@/composables/useCanvas'
+
+const props = defineProps<{
+  component: CanvasComponent
+  isSelected: boolean
+  isDropTarget?: boolean
+  dropTargetColumn?: number | null
+}>()
+
+const emit = defineEmits<{
+  select: [id: string]
+  delete: [id: string]
+  dragOverGrid: [event: DragEvent]
+  dragLeaveGrid: []
+  dropGrid: [event: DragEvent]
+  dragOverColumn: [event: DragEvent, columnIndex: number]
+  dragLeaveColumn: []
+  dropColumn: [event: DragEvent, columnIndex: number]
+  buttonClick: [submitType: string]
+}>()
+
+const { isVisible: checkVisible, isComponentDisabled: checkDisabled, getComponentSize, forceRefresh, refreshTrigger } = useCanvas()
+
+const validationError = ref('')
+
+watch(() => props.component.value, () => {
+  validationError.value = ''
+})
+
+function validate(): boolean {
+  const comp = props.component
+  const value = comp.value ?? ''
+  const required = comp.props.required as boolean || false
+  const inputType = comp.props.inputType as string || 'text'
+  const maxLength = comp.props.maxLength as number | null
+  const minValue = comp.props.minValue as number | null
+  const maxValue = comp.props.maxValue as number | null
+  const decimalPlaces = comp.props.decimalPlaces as number | null
+  
+  if (required && (!value || String(value).trim() === '')) {
+    validationError.value = '此字段为必填项'
+    return false
+  }
+  
+  if (!value) {
+    validationError.value = ''
+    return true
+  }
+  
+  const strValue = String(value)
+  
+  if (maxLength !== null && strValue.length > maxLength) {
+    validationError.value = `输入长度不能超过${maxLength}个字符`
+    return false
+  }
+  
+  switch (inputType) {
+    case 'number':
+      if (!/^\d+$/.test(strValue)) {
+        validationError.value = '只能输入数字'
+        return false
+      }
+      break
+    case 'chinese':
+      if (!/^[\u4e00-\u9fa5]+$/.test(strValue)) {
+        validationError.value = '只能输入中文'
+        return false
+      }
+      break
+    case 'english':
+      if (!/^[a-zA-Z]+$/.test(strValue)) {
+        validationError.value = '只能输入英文'
+        return false
+      }
+      break
+    case 'englishNumber':
+      if (!/^[a-zA-Z0-9]+$/.test(strValue)) {
+        validationError.value = '只能输入英文和数字'
+        return false
+      }
+      break
+    case 'decimal':
+      if (!/^\d+(\.\d+)?$/.test(strValue)) {
+        validationError.value = '只能输入数字(可带小数)'
+        return false
+      }
+      if (decimalPlaces !== null) {
+        const parts = strValue.split('.')
+        if (parts.length === 2 && parts[1].length > decimalPlaces) {
+          validationError.value = `最多保留${decimalPlaces}位小数`
+          return false
+        }
+      }
+      break
+  }
+  
+  if ((inputType === 'number' || inputType === 'decimal')) {
+    const numValue = parseFloat(strValue)
+    if (!isNaN(numValue)) {
+      if (minValue !== null && numValue < minValue) {
+        validationError.value = `值不能小于${minValue}`
+        return false
+      }
+      if (maxValue !== null && numValue > maxValue) {
+        validationError.value = `值不能大于${maxValue}`
+        return false
+      }
+    }
+  }
+  
+  validationError.value = ''
+  return true
+}
+
+function clearValidation() {
+  validationError.value = ''
+}
+
+function handleButtonClick() {
+  const submitType = props.component.props.submitType as string || 'none'
+  emit('buttonClick', submitType)
+}
+
+defineExpose({
+  validate,
+  clearValidation
+})
+
+const textStyle = computed(() => {
+  const p = props.component.props as Record<string, string>
+  return {
+    fontSize: p.fontSize || '16px',
+    fontWeight: p.fontWeight || 'normal',
+    color: p.color || '#333',
+    textAlign: (p.textAlign || 'left') as 'left' | 'center' | 'right'
+  }
+})
+
+const imageStyle = computed(() => {
+  const p = props.component.props as Record<string, string>
+  return {
+    width: p.width || '300px',
+    height: p.height || '200px',
+    borderRadius: p.borderRadius || '0px'
+  }
+})
+
+const headingColor = computed(() => {
+  return props.component.props.color as string || '#333'
+})
+
+const selectOptions = computed(() => {
+  return props.component.props.options as { label: string; value: string; customAttrs?: Record<string, string> }[] || []
+})
+
+const customStyle = computed(() => {
+  const styleStr = props.component.props.customStyle as string || ''
+  const styles: Record<string, string> = {}
+  styleStr.split(';').forEach(item => {
+    const [key, value] = item.split(':').map(s => s.trim())
+    if (key && value) {
+      styles[key] = value
+    }
+  })
+  return styles
+})
+
+function getChildOptions(child: CanvasComponent) {
+  return child.props.options as Array<{ label: string; value: string }> || []
+}
+
+function getChildInColumn(columnIndex: number): CanvasComponent | undefined {
+  if (!props.component.children) return undefined
+  return props.component.children.find((_, idx) => idx === columnIndex)
+}
+
+const visible = computed(() => {
+  refreshTrigger.value
+  return checkVisible(props.component)
+})
+
+const disabled = computed(() => {
+  refreshTrigger.value
+  return checkDisabled(props.component)
+})
+
+function handleGridDragOver(event: DragEvent) {
+  event.stopPropagation()
+  emit('dragOverGrid', event)
+}
+
+function handleGridDragLeave(event: DragEvent) {
+  event.stopPropagation()
+  emit('dragLeaveGrid')
+}
+
+function handleGridDrop(event: DragEvent) {
+  event.stopPropagation()
+  emit('dropGrid', event)
+}
+
+function handleInputChange(value: unknown) {
+  props.component.value = value
+  forceRefresh()
+}
+
+function handleSelectChange(value: unknown) {
+  props.component.value = value
+  forceRefresh()
+  const submitFields = props.component.props.submitFields as string[] || []
+  if (submitFields.length > 0) {
+    const options = selectOptions.value
+    const selectedValue = String(value ?? '')
+    const selectedOption = options.find(opt => String(opt.value) === selectedValue)
+    if (selectedOption && selectedOption.customAttrs) {
+      for (const fieldName of submitFields) {
+        const submitValue = selectedOption.customAttrs[fieldName]
+        if (submitValue !== undefined) {
+          const customEvent = new CustomEvent('field-change', {
+            detail: {
+              field: fieldName,
+              value: submitValue
+            },
+            bubbles: true
+          })
+          window.dispatchEvent(customEvent)
+        }
+      }
+    }
+  }
+}
+</script>
+
+<template>
+  <div
+    class="rendered-component"
+    :class="{ selected: isSelected, invisible: !visible }"
+    :style="customStyle"
+    @click.stop="emit('select', component.id)"
+  >
+    <div v-if="component.type === 'Text'" class="text-component" :style="textStyle">
+      {{ component.props.content }}
+    </div>
+    
+    <div v-else-if="component.type === 'Heading'" class="heading-component">
+      <h1 v-if="(component.props.level as number) === 1" :style="{ color: headingColor }">
+        {{ component.props.content }}
+      </h1>
+      <h2 v-else-if="(component.props.level as number) === 2" :style="{ color: headingColor }">
+        {{ component.props.content }}
+      </h2>
+      <h3 v-else :style="{ color: headingColor }">
+        {{ component.props.content }}
+      </h3>
+    </div>
+    
+    <el-button
+      v-else-if="component.type === 'Button'"
+      :type="component.props.type as string"
+      :size="getComponentSize(component)"
+      :round="component.props.round as boolean"
+      :disabled="disabled"
+      @click="handleButtonClick"
+    >
+      {{ component.props.text }}
+    </el-button>
+    
+    <img
+      v-else-if="component.type === 'Image'"
+      :src="component.props.src as string"
+      :alt="component.props.alt as string"
+      :style="imageStyle"
+      class="image-component"
+    />
+    
+    <div v-else-if="component.type === 'Input'" class="form-field">
+      <el-input
+        :model-value="component.value"
+        @update:model-value="handleInputChange"
+        :placeholder="component.props.placeholder as string"
+        :size="getComponentSize(component)"
+        :disabled="disabled"
+        :clearable="component.props.clearable as boolean"
+        :maxlength="component.props.maxLength as number || undefined"
+      />
+      <span v-if="validationError" class="validation-error">{{ validationError }}</span>
+    </div>
+    
+    <div v-else-if="component.type === 'Select'" class="form-field">
+      <el-select
+        :model-value="component.value"
+        @update:model-value="handleSelectChange($event)"
+        :placeholder="component.props.placeholder as string"
+        :size="getComponentSize(component)"
+        :disabled="disabled"
+        style="width: 100%;"
+      >
+        <el-option
+          v-for="(opt, index) in selectOptions"
+          :key="index"
+          :label="opt.label"
+          :value="opt.value"
+        />
+      </el-select>
+      <span v-if="validationError" class="validation-error">{{ validationError }}</span>
+    </div>
+    
+    <div v-else-if="component.type === 'DatePicker'" class="form-field">
+      <el-date-picker
+        :model-value="component.value"
+        @update:model-value="(val: unknown) => { component.value = val; forceRefresh() }"
+        :type="component.props.type as string"
+        :range="component.props.range as boolean"
+        :placeholder="component.props.placeholder as string"
+        :size="getComponentSize(component)"
+        :disabled="disabled"
+        style="width: 100%;"
+      />
+      <span v-if="validationError" class="validation-error">{{ validationError }}</span>
+    </div>
+    
+    <el-card
+      v-else-if="component.type === 'Card'"
+      :title="component.props.title as string"
+      :shadow="component.props.shadow as string"
+    >
+      <div style="padding: 16px;">卡片内容区域</div>
+    </el-card>
+    
+    <el-divider
+      v-else-if="component.type === 'Divider'"
+      :direction="component.props.direction as string"
+    >
+      {{ component.props.content }}
+    </el-divider>
+    
+    <el-space
+      v-else-if="component.type === 'Space'"
+      :size="component.props.size as string"
+    >
+      <div style="padding: 8px; background: #f5f5f5;">间距示例1</div>
+      <div style="padding: 8px; background: #f5f5f5;">间距示例2</div>
+    </el-space>
+    
+    <div
+      v-else-if="component.type === 'Grid'"
+      class="grid-container"
+      :class="{ 'drop-target': isDropTarget }"
+      @dragover="handleGridDragOver"
+      @dragleave="handleGridDragLeave"
+      @drop="handleGridDrop"
+    >
+      <el-row :gutter="component.props.gutter as number">
+        <el-col
+          v-for="i in (component.props.columns as number)"
+          :key="i"
+          :span="24 / (component.props.columns as number)"
+          class="grid-column"
+        >
+          <div 
+            class="grid-column-content"
+            :class="{ 'drop-target': dropTargetColumn === i - 1 }"
+            @dragover="(e: DragEvent) => emit('dragOverColumn', e, i - 1)"
+            @dragleave="emit('dragLeaveColumn')"
+            @drop="(e: DragEvent) => emit('dropColumn', e, i - 1)"
+          >
+            <template v-if="getChildInColumn(i - 1)">
+              <div
+                :key="getChildInColumn(i - 1)!.id"
+                class="grid-child"
+                :class="{ selected: getChildInColumn(i - 1)!.id === component.id }"
+                @click.stop="emit('select', getChildInColumn(i - 1)!.id)"
+              >
+                <div v-if="getChildInColumn(i - 1)!.type === 'Text'" class="text-component" :style="{ fontSize: '14px', color: '#333' }">
+                  {{ getChildInColumn(i - 1)!.props.content }}
+                </div>
+                <div v-else-if="getChildInColumn(i - 1)!.type === 'Heading'" class="heading-component">
+                  <h1 v-if="(getChildInColumn(i - 1)!.props.level as number) === 1" style="font-size: 18px;">{{ getChildInColumn(i - 1)!.props.content }}</h1>
+                  <h2 v-else-if="(getChildInColumn(i - 1)!.props.level as number) === 2" style="font-size: 16px;">{{ getChildInColumn(i - 1)!.props.content }}</h2>
+                  <h3 v-else style="font-size: 14px;">{{ getChildInColumn(i - 1)!.props.content }}</h3>
+                </div>
+                <el-button
+                  v-else-if="getChildInColumn(i - 1)!.type === 'Button'"
+                  :type="getChildInColumn(i - 1)!.props.type as string"
+                  :size="getComponentSize(getChildInColumn(i - 1)!)"
+                  :round="getChildInColumn(i - 1)!.props.round as boolean"
+                  :disabled="checkDisabled(getChildInColumn(i - 1)!)"
+                >
+                  {{ getChildInColumn(i - 1)!.props.text }}
+                </el-button>
+                <img
+                  v-else-if="getChildInColumn(i - 1)!.type === 'Image'"
+                  :src="getChildInColumn(i - 1)!.props.src as string"
+                  :alt="getChildInColumn(i - 1)!.props.alt as string"
+                  style="max-width: 100%; height: auto;"
+                />
+                <el-input
+                  v-else-if="getChildInColumn(i - 1)!.type === 'Input'"
+                  :placeholder="getChildInColumn(i - 1)!.props.placeholder as string"
+                  :size="getComponentSize(getChildInColumn(i - 1)!)"
+                  :disabled="checkDisabled(getChildInColumn(i - 1)!)"
+                  style="width: 100%;"
+                />
+                <el-select
+                  v-else-if="getChildInColumn(i - 1)!.type === 'Select'"
+                  :placeholder="getChildInColumn(i - 1)!.props.placeholder as string"
+                  :size="getComponentSize(getChildInColumn(i - 1)!)"
+                  :disabled="checkDisabled(getChildInColumn(i - 1)!)"
+                  style="width: 100%;"
+                >
+                  <el-option
+                    v-for="opt in getChildOptions(getChildInColumn(i - 1)!)"
+                    :key="opt.value"
+                    :label="opt.label"
+                    :value="opt.value"
+                  />
+                </el-select>
+                <el-date-picker
+                  v-else-if="getChildInColumn(i - 1)!.type === 'DatePicker'"
+                  :type="getChildInColumn(i - 1)!.props.type as string"
+                  :range="getChildInColumn(i - 1)!.props.range as boolean"
+                  :placeholder="getChildInColumn(i - 1)!.props.placeholder as string"
+                  :size="getComponentSize(getChildInColumn(i - 1)!)"
+                  :disabled="checkDisabled(getChildInColumn(i - 1)!)"
+                  style="width: 100%;"
+                />
+                <el-card
+                  v-else-if="getChildInColumn(i - 1)!.type === 'Card'"
+                  :title="getChildInColumn(i - 1)!.props.title as string"
+                  :shadow="getChildInColumn(i - 1)!.props.shadow as string"
+                  style="width: 100%;"
+                >
+                  <div style="padding: 8px;">卡片内容</div>
+                </el-card>
+                <el-divider
+                  v-else-if="getChildInColumn(i - 1)!.type === 'Divider'"
+                  :direction="getChildInColumn(i - 1)!.props.direction as string"
+                >
+                  {{ getChildInColumn(i - 1)!.props.content }}
+                </el-divider>
+              </div>
+            </template>
+            <div v-else class="grid-empty-hint">
+              <i class="el-icon-upload"></i>
+              <span>拖拽组件到此处</span>
+            </div>
+          </div>
+        </el-col>
+      </el-row>
+    </div>
+    
+    <div v-if="isSelected" class="component-actions">
+      <button class="delete-btn" @click.stop="emit('delete', component.id)">
+        X
+      </button>
+    </div>
+  </div>
+</template>
+
+<style lang="scss" scoped>
+.rendered-component {
+  padding: 4px;
+  margin-bottom: 4px;
+  background: transparent;
+  border: 2px solid transparent;
+  border-radius: 8px;
+  cursor: grab;
+  transition: border-color 0.2s, background-color 0.2s;
+  position: relative;
+  
+  &:hover:not(.sortable-drag):not(.sortable-ghost) {
+    background: #fafafa;
+  }
+  
+  &:active {
+    cursor: grabbing;
+  }
+  
+  &.selected {
+    padding: 16px;
+    margin-bottom: 16px;
+    margin-top: 16px;
+    border-color: #409eff;
+    background: #f0f5ff;
+  }
+  
+  &.invisible {
+    opacity: 0.4;
+    border: 2px dashed #c0c4cc;
+    background: #fafafa;
+  }
+  
+  &.sortable-drag,
+  &.sortable-ghost {
+    transition: none !important;
+    animation: none !important;
+  }
+}
+
+.text-component {
+  line-height: 1.6;
+}
+
+.heading-component {
+  h1, h2, h3 {
+    margin: 0;
+    font-weight: 600;
+  }
+  
+  h1 { font-size: 24px; }
+  h2 { font-size: 20px; }
+  h3 { font-size: 16px; }
+}
+
+.image-component {
+  display: block;
+  object-fit: cover;
+}
+
+.grid-container {
+  padding: 16px;
+  border: 2px dashed #dcdfe6;
+  border-radius: 8px;
+  transition: all 0.2s;
+  
+  &.drop-target {
+    border-color: #409eff;
+    background: #f0f5ff;
+  }
+}
+
+.grid-column {
+  padding: 8px;
+}
+
+.grid-column-content {
+  min-height: 100px;
+  background: #fafafa;
+  border-radius: 4px;
+  padding: 8px;
+  border: 2px dashed transparent;
+  
+  &:hover {
+    border-color: #dcdfe6;
+  }
+  
+  &.drop-target {
+    border-color: #409eff;
+    background: #f0f5ff;
+  }
+}
+
+.grid-empty-hint {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 80px;
+  color: #909399;
+  font-size: 12px;
+  
+  i {
+    font-size: 24px;
+    margin-bottom: 4px;
+  }
+}
+
+.grid-child {
+  margin-bottom: 8px;
+  padding: 8px;
+  background: #ffffff;
+  border-radius: 4px;
+  border: 1px solid #e8e8e8;
+  
+  &.selected {
+    border-color: #409eff;
+    background: #f0f5ff;
+  }
+}
+
+.component-actions {
+  position: absolute;
+  top: -10px;
+  right: -10px;
+  display: flex;
+  gap: 4px;
+}
+
+.delete-btn {
+  width: 24px;
+  height: 24px;
+  border: none;
+  border-radius: 50%;
+  background: #f56c6c;
+  color: white;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  transition: background 0.2s;
+  
+  &:hover {
+    background: #f78989;
+  }
+}
+
+.form-field {
+  width: 100%;
+}
+
+.validation-error {
+  display: block;
+  margin-top: 4px;
+  font-size: 12px;
+  color: #f56c6c;
+}
+</style>
