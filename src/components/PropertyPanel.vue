@@ -6,6 +6,7 @@ import type { DerivedField } from '@/types'
 import ModalDialog from './ModalDialog.vue'
 import StyleEditor from './StyleEditor.vue'
 import CascaderNodeEditor from './CascaderNodeEditor.vue'
+import ListColumnEditor from './ListColumnEditor.vue'
 import type { ConditionRule } from '@/types'
 import type { CascaderOption } from '@/data/regionData'
 
@@ -42,6 +43,7 @@ const showVisibilityModal = ref(false)
 const showDisabledModal = ref(false)
 const showStyleEditor = ref(false)
 const showCascaderDataModal = ref(false)
+const showListColumnModal = ref(false)
 const currentStyle = ref('')
 const fieldBindingError = ref('')
 const editingCascaderData = ref<CascaderOption[]>([])
@@ -205,6 +207,60 @@ function removeDerivedField(index: number) {
 function updateDerivedFields() {
   if (!selectedComponent.value) return
   updateProp('derivedFields', [...derivedFields.value])
+}
+
+const listDataJson = computed({
+  get: () => {
+    if (!selectedComponent.value) return ''
+    try {
+      return JSON.stringify(selectedComponent.value.props.data, null, 2)
+    } catch {
+      return ''
+    }
+  },
+  set: (val: string) => {
+    if (!selectedComponent.value) return
+    try {
+      const data = JSON.parse(val)
+      updateProp('data', data)
+    } catch {
+      console.warn('Invalid JSON format for list data')
+    }
+  }
+})
+
+function addListColumn() {
+  if (!selectedComponent.value) return
+  const columns = selectedComponent.value.props.columns as Array<{key: string; label: string; width?: string; sortable?: boolean; sortType?: string}> || []
+  columns.push({
+    key: 'newColumn',
+    label: '新列',
+    width: '150px',
+    sortable: false,
+    sortType: 'string'
+  })
+  updateProp('columns', [...columns])
+}
+
+function removeListColumn(index: number) {
+  if (!selectedComponent.value) return
+  const columns = selectedComponent.value.props.columns as Array<{key: string; label: string; width?: string; sortable?: boolean; sortType?: string}> || []
+  columns.splice(index, 1)
+  updateProp('columns', [...columns])
+}
+
+function updateListColumns() {
+  if (!selectedComponent.value) return
+  const columns = selectedComponent.value.props.columns as Array<{key: string; label: string; width?: string; sortable?: boolean; sortType?: string}> || []
+  updateProp('columns', [...columns])
+}
+
+function updateListData() {
+}
+
+function handleListColumnSave(columns: Array<{key: string; label: string; width?: string; sortable?: boolean; sortType?: string}>) {
+  if (!selectedComponent.value) return
+  updateProp('columns', columns)
 }
 </script>
 
@@ -766,6 +822,49 @@ function updateDerivedFields() {
         </el-select>
       </div>
       
+      <div v-else-if="selectedComponent.type === 'List'" class="property-group">
+        <label class="property-label">最大高度</label>
+        <el-input
+          v-model="selectedComponent.props.maxHeight"
+          @input="updateProp('maxHeight', selectedComponent.props.maxHeight)"
+          placeholder="如：600px，auto 表示自适应"
+        />
+        
+        <label class="property-label">列配置</label>
+        <el-button size="small" type="primary" @click="showListColumnModal = true" style="width: 100%;">
+          编辑列配置 ({{ (selectedComponent.props.columns as Array<{key: string; label: string; width?: string; sortable?: boolean; sortType?: string}>).length }} 列)
+        </el-button>
+        
+        <label class="property-label">默认每页条数</label>
+        <el-select
+          v-model="selectedComponent.props.pageSize"
+          @change="updateProp('pageSize', $event)"
+        >
+          <el-option label="10" :value="10" />
+          <el-option label="20" :value="20" />
+          <el-option label="50" :value="50" />
+          <el-option label="100" :value="100" />
+        </el-select>
+        
+        <label class="property-label">示例数据</label>
+        <el-input
+          v-model="listDataJson"
+          type="textarea"
+          :rows="6"
+          @input="updateListData"
+          placeholder="输入 JSON 格式的数据"
+        />
+      </div>
+      
+      <div v-else-if="selectedComponent.type === 'FilePreview'" class="property-group">
+        <label class="property-label">按钮文字</label>
+        <el-input
+          v-model="selectedComponent.props.buttonText"
+          @input="updateProp('buttonText', selectedComponent.props.buttonText)"
+          placeholder="打开文件预览"
+        />
+      </div>
+      
       <div class="property-group">
         <label class="property-label">衍生字段</label>
         <el-button size="small" type="primary" @click="addDerivedField" style="width: 100%;">
@@ -935,6 +1034,12 @@ function updateDerivedFields() {
         <el-button type="primary" @click="handleCascaderDataSave">保存</el-button>
       </template>
     </el-dialog>
+
+    <ListColumnEditor
+      v-model:visible="showListColumnModal"
+      :columns="(selectedComponent?.props.columns as Array<{key: string; label: string; width?: string; sortable?: boolean; sortType?: string}>) || []"
+      @save="handleListColumnSave"
+    />
   </div>
 </template>
 
@@ -1111,5 +1216,43 @@ function updateDerivedFields() {
   color: #909399;
   padding: 32px 0;
   font-size: 14px;
+}
+
+.list-columns-editor {
+  background: #f8f9fa;
+  padding: 12px;
+  border-radius: 6px;
+  border: 1px solid #e9ecef;
+}
+
+.column-item {
+  padding: 12px;
+  background: #ffffff;
+  border-radius: 4px;
+  margin-bottom: 8px;
+  border: 1px solid #dee2e6;
+  
+  &:last-child {
+    margin-bottom: 0;
+  }
+}
+
+.column-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+  padding-bottom: 8px;
+  border-bottom: 1px dashed #dee2e6;
+  
+  span {
+    font-size: 14px;
+    font-weight: 600;
+    color: #495057;
+  }
+}
+
+.column-options {
+  margin-top: 8px;
 }
 </style>

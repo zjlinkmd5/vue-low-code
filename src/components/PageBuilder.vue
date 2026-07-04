@@ -103,7 +103,6 @@ function handleImport(event: Event) {
 function handleClear() {
   if (confirm('确定要清空画布吗？')) {
     clearCanvas()
-    localStorage.removeItem('pageBuilderData')
   }
 }
 </script>

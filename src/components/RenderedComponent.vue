@@ -1,8 +1,9 @@
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue'
+import { computed, ref, watch, nextTick } from 'vue'
 import type { CanvasComponent } from '@/types'
 import { useCanvas } from '@/composables/useCanvas'
 import { regionCascaderData, type CascaderOption } from '@/data/regionData'
+import FilePreview from './FilePreview.vue'
 
 const props = defineProps<{
   component: CanvasComponent
@@ -129,6 +130,135 @@ defineExpose({
   validate,
   clearValidation
 })
+
+const listColumns = computed(() => {
+  return (props.component.props.columns as Array<{ key: string; label: string; width?: string; sortable?: boolean }>) || []
+})
+
+const listData = computed(() => {
+  return (props.component.props.data as Array<Record<string, unknown>>) || []
+})
+
+const listMaxHeight = computed(() => {
+  const height = props.component.props.maxHeight as string
+  return height === 'auto' ? '600px' : height
+})
+
+const sortKey = ref('')
+const sortOrder = ref<'ascending' | 'descending'>('ascending')
+
+const currentPage = ref(1)
+const pageSize = computed(() => {
+  return (props.component.props.pageSize as number) || 10
+})
+
+const showFilePreview = ref(false)
+
+function handleFileSave(file: any) {
+  console.log('File saved:', file)
+}
+
+const useVirtualScroll = computed(() => {
+  return listData.value.length > 100
+})
+
+const sortedListData = computed(() => {
+  let data = [...listData.value]
+  
+  if (sortKey.value) {
+    const column = listColumns.value.find(c => c.key === sortKey.value)
+    if (column) {
+      const sortType = (column as any).sortType || 'string'
+      
+      data.sort((a, b) => {
+        const valA = a[sortKey.value]
+        const valB = b[sortKey.value]
+        
+        if (sortType === 'number') {
+          const numA = parseFloat(String(valA)) || 0
+          const numB = parseFloat(String(valB)) || 0
+          return sortOrder.value === 'ascending' ? numA - numB : numB - numA
+        } else if (sortType === 'date') {
+          const dateA = new Date(String(valA))
+          const dateB = new Date(String(valB))
+          return sortOrder.value === 'ascending' ? dateA.getTime() - dateB.getTime() : dateB.getTime() - dateA.getTime()
+        } else {
+          return sortOrder.value === 'ascending' 
+            ? String(valA).localeCompare(String(valB)) 
+            : String(valB).localeCompare(String(valA))
+        }
+      })
+    }
+  }
+  
+  return data
+})
+
+const filteredListData = computed(() => {
+  const data = sortedListData.value
+  const start = (currentPage.value - 1) * pageSize.value
+  const end = start + pageSize.value
+  return data.slice(start, end)
+})
+
+const totalListData = computed(() => {
+  return sortedListData.value.length
+})
+
+function handlePageChange(page: number) {
+  currentPage.value = page
+}
+
+function handlePageSizeChange(size: number) {
+  pageSize.value = size
+  currentPage.value = 1
+}
+
+function handleListSort({ prop, order }: { prop: string; order: 'ascending' | 'descending' }) {
+  sortKey.value = prop
+  sortOrder.value = order
+}
+
+function isImageUrl(value: unknown): boolean {
+  const str = String(value)
+  return /\.(jpg|jpeg|png|gif|svg|webp)$/i.test(str) || str.startsWith('data:image')
+}
+
+let imageObserver: IntersectionObserver | null = null
+
+function initLazyImages() {
+  if (imageObserver) {
+    imageObserver.disconnect()
+  }
+  
+  imageObserver = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        const img = entry.target as HTMLImageElement
+        const src = img.getAttribute('data-src')
+        if (src) {
+          img.src = src
+          img.classList.remove('lazy-image')
+        }
+        imageObserver?.unobserve(img)
+      }
+    })
+  }, {
+    rootMargin: '100px'
+  })
+  
+  const images = document.querySelectorAll('.lazy-image')
+  images.forEach(img => imageObserver!.observe(img))
+}
+
+watch(filteredListData, async () => {
+  await nextTick()
+  initLazyImages()
+}, { deep: true })
+
+if (typeof window !== 'undefined') {
+  setTimeout(initLazyImages, 100)
+}
 
 const textStyle = computed(() => {
   const p = props.component.props as Record<string, string>
@@ -799,6 +929,55 @@ function handleSelectChange(value: unknown) {
       </el-row>
     </div>
     
+    <div v-else-if="component.type === 'FilePreview'" class="file-preview-component">
+      <FilePreview />
+    </div>
+
+    <div v-else-if="component.type === 'List'" class="list-component">
+      <el-table
+        :data="filteredListData"
+        :height="listMaxHeight"
+        :virtual-scroll="useVirtualScroll"
+        :virtual-scroll-item-size="48"
+        class="custom-list-table"
+        @sort-change="handleListSort"
+        border
+      >
+        <el-table-column
+          v-for="(col, index) in listColumns"
+          :key="index"
+          :prop="col.key"
+          :label="col.label"
+          :width="col.width"
+          :sortable="col.sortable"
+        >
+          <template #default="{ row }">
+            <span v-if="isImageUrl(row[col.key])" class="list-image-container">
+              <img
+                :data-src="row[col.key]"
+                class="lazy-image"
+                :alt="col.label"
+              />
+            </span>
+            <span v-else class="list-cell-text" :title="String(row[col.key])">
+              {{ row[col.key] }}
+            </span>
+          </template>
+        </el-table-column>
+      </el-table>
+      <div class="list-pagination">
+        <el-pagination
+          v-model:current-page="currentPage"
+          v-model:page-size="pageSize"
+          :total="totalListData"
+          :page-sizes="[10, 20, 50, 100]"
+          layout="total, sizes, prev, pager, next, jumper"
+          @size-change="handlePageSizeChange"
+          @current-change="handlePageChange"
+        />
+      </div>
+    </div>
+    
     <div v-if="isSelected" class="component-actions">
       <button class="delete-btn" @click.stop="emit('delete', component.id)">
         X
@@ -1015,6 +1194,67 @@ function handleSelectChange(value: unknown) {
     color: #606266;
     font-size: 14px;
     flex-shrink: 0;
+  }
+}
+
+.list-component {
+  width: 100%;
+  overflow-x: auto;
+
+  .custom-list-table {
+    width: 100%;
+    table-layout: auto;
+
+    :deep(.el-table__body-wrapper) {
+      overflow-x: hidden;
+    }
+
+    :deep(.el-table__header-wrapper) {
+      overflow-x: hidden;
+    }
+
+    :deep(.el-table__header-inner) {
+      overflow-x: hidden;
+    }
+
+    :deep(.el-table__cell) {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      max-width: 300px;
+    }
+  }
+
+  .list-cell-text {
+    display: inline-block;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 100%;
+  }
+
+  .list-image-container {
+    display: flex;
+    align-items: center;
+
+    img {
+      max-width: 80px;
+      max-height: 80px;
+      object-fit: contain;
+      border-radius: 4px;
+    }
+
+    .lazy-image {
+      background: #f5f5f5;
+      border-radius: 4px;
+    }
+  }
+
+  .list-pagination {
+    display: flex;
+    justify-content: flex-end;
+    padding: 12px 0;
+    border-top: 1px solid #ebeef5;
   }
 }
 </style>

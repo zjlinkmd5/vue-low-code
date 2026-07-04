@@ -45,6 +45,14 @@ export interface DisabledConfig {
   conditions: ConditionRule[]
 }
 
+export interface ListColumn {
+  key: string
+  label: string
+  width?: string
+  sortable?: boolean
+  sortType?: 'string' | 'number' | 'date'
+}
+
 export interface CanvasComponent {
   id: string
   type: string

@@ -22,6 +22,7 @@ export async function generateHtmlExport(components: CanvasComponent[], globalCo
   <title>页面导出</title>
   <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
   <script src="https://unpkg.com/element-plus/dist/index.full.js"></script>
+  <script src="https://unpkg.com/element-plus/es/locale/lang/zh-cn.js"></script>
   <link rel="stylesheet" href="https://unpkg.com/element-plus/dist/index.css">
   <link rel="stylesheet" href="styles.css">
 </head>
@@ -78,7 +79,12 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helv
 .text-component { line-height: 1.6; }
 .heading-component h1 { font-size: 24px; margin: 0; font-weight: 600; }
 .heading-component h2 { font-size: 20px; margin: 0; font-weight: 600; }
-.heading-component h3 { font-size: 16px; margin: 0; font-weight: 600; }`)
+.heading-component h3 { font-size: 16px; margin: 0; font-weight: 600; }
+.list-component { width: 100%; overflow-x: auto; }
+.list-component .custom-list-table { width: 100%; }
+.list-component .list-cell-text { display: inline-block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 100%; }
+.list-component .list-image-container img { max-width: 80px; max-height: 80px; object-fit: contain; border-radius: 4px; }
+.list-component .lazy-image { background: #f5f5f5; border-radius: 4px; }`)
 
   zip.file('app.js', generateAppJs(components, cascaderOptionsMap))
 
@@ -92,14 +98,14 @@ function generateAppJs(components: CanvasComponent[], cascaderOptionsMap: Record
     const inputType = c.props.inputType || 'text'
     const compType = c.type
     const dateType = c.props.type || 'date'
-    return '{ id: \'' + c.id + '\', fieldName: \'' + fieldName + '\', required: ' + required + ', inputType: \'' + inputType + '\', compType: \'' + compType + '\', dateType: \'' + dateType + '\' }'
+    return `{ id: '${c.id}', fieldName: '${fieldName}', required: ${required}, inputType: '${inputType}', compType: '${compType}', dateType: '${dateType}' }`
   }).join(',')
 
-  const compIds = components.map(c => '\'' + c.id + '\'').join(', ')
+  const compIds = components.map(c => `'${c.id}'`).join(', ')
 
   let cascaderOptionsDefs = ''
   for (const [id, options] of Object.entries(cascaderOptionsMap)) {
-    cascaderOptionsDefs += '    const cascaderOptions_' + id + ' = ' + JSON.stringify(options) + ';\n'
+    cascaderOptionsDefs += `    const cascaderOptions_${id} = ${JSON.stringify(options)};\n`
   }
 
   const quarterOptions = JSON.stringify([
@@ -117,7 +123,350 @@ function generateAppJs(components: CanvasComponent[], cascaderOptionsMap: Record
   }
   const yearQuarterOptions = JSON.stringify(yearQuarterOptionsArray)
 
-  return 'const { createApp, ref } = Vue\n\ncreateApp({\n  setup() {\n    const formData = ref({})\n    const visibleComponents = ref({})\n    const disabledComponents = ref({})\n    const customStartDate = ref({})\n    const customEndDate = ref({})\n    const validationErrors = ref({})\n\n    const regionOptions = [\n      {\"value\":\"110000\",\"label\":\"北京市\",\"children\":[{\"value\":\"110100\",\"label\":\"北京市\",\"children\":[{\"value\":\"110101\",\"label\":\"东城区\"},{\"value\":\"110102\",\"label\":\"西城区\"},{\"value\":\"110105\",\"label\":\"朝阳区\"},{\"value\":\"110106\",\"label\":\"丰台区\"},{\"value\":\"110107\",\"label\":\"石景山区\"},{\"value\":\"110108\",\"label\":\"海淀区\"},{\"value\":\"110109\",\"label\":\"门头沟区\"},{\"value\":\"110111\",\"label\":\"房山区\"},{\"value\":\"110112\",\"label\":\"通州区\"},{\"value\":\"110113\",\"label\":\"顺义区\"},{\"value\":\"110114\",\"label\":\"昌平区\"},{\"value\":\"110115\",\"label\":\"大兴区\"},{\"value\":\"110116\",\"label\":\"怀柔区\"},{\"value\":\"110117\",\"label\":\"平谷区\"},{\"value\":\"110118\",\"label\":\"密云区\"},{\"value\":\"110119\",\"label\":\"延庆区\"}]}]},\n      {\"value\":\"310000\",\"label\":\"上海市\",\"children\":[{\"value\":\"310100\",\"label\":\"上海市\",\"children\":[{\"value\":\"310101\",\"label\":\"黄浦区\"},{\"value\":\"310104\",\"label\":\"徐汇区\"},{\"value\":\"310105\",\"label\":\"长宁区\"},{\"value\":\"310106\",\"label\":\"静安区\"},{\"value\":\"310107\",\"label\":\"普陀区\"},{\"value\":\"310109\",\"label\":\"虹口区\"},{\"value\":\"310110\",\"label\":\"杨浦区\"},{\"value\":\"310115\",\"label\":\"浦东新区\"},{\"value\":\"310116\",\"label\":\"闵行区\"},{\"value\":\"310117\",\"label\":\"宝山区\"},{\"value\":\"310118\",\"label\":\"嘉定区\"},{\"value\":\"310120\",\"label\":\"金山区\"},{\"value\":\"310121\",\"label\":\"松江区\"},{\"value\":\"310122\",\"label\":\"青浦区\"},{\"value\":\"310123\",\"label\":\"奉贤区\"},{\"value\":\"310151\",\"label\":\"崇明区\"}]}]},\n      {\"value\":\"440000\",\"label\":\"广东省\",\"children\":[{\"value\":\"440100\",\"label\":\"广州市\",\"children\":[{\"value\":\"440103\",\"label\":\"荔湾区\"},{\"value\":\"440104\",\"label\":\"越秀区\"},{\"value\":\"440105\",\"label\":\"海珠区\"},{\"value\":\"440106\",\"label\":\"天河区\"},{\"value\":\"440111\",\"label\":\"白云区\"},{\"value\":\"440112\",\"label\":\"黄埔区\"},{\"value\":\"440113\",\"label\":\"番禺区\"},{\"value\":\"440114\",\"label\":\"花都区\"},{\"value\":\"440115\",\"label\":\"南沙区\"},{\"value\":\"440117\",\"label\":\"从化区\"},{\"value\":\"440118\",\"label\":\"增城区\"}]},{\"value\":\"440300\",\"label\":\"深圳市\",\"children\":[{\"value\":\"440303\",\"label\":\"罗湖区\"},{\"value\":\"440304\",\"label\":\"福田区\"},{\"value\":\"440305\",\"label\":\"南山区\"},{\"value\":\"440306\",\"label\":\"宝安区\"},{\"value\":\"440307\",\"label\":\"龙岗区\"},{\"value\":\"440308\",\"label\":\"盐田区\"},{\"value\":\"440309\",\"label\":\"龙华区\"},{\"value\":\"440310\",\"label\":\"坪山区\"},{\"value\":\"440311\",\"label\":\"光明区\"}]}]}\n    ]\n\n    const quarterOptions = ' + quarterOptions + ';\n    const yearQuarterOptions = ' + yearQuarterOptions + ';\n\n' + cascaderOptionsDefs + '\n    const fieldConfigs = [' + fieldConfigs + ']\n\n    const compIds = [' + compIds + ']\n    compIds.forEach(id => {\n      visibleComponents.value[id] = true\n      disabledComponents.value[id] = false\n      customStartDate.value[id] = \'\'\n      customEndDate.value[id] = \'\'\n    })\n\n    function formatDateTime(date) {\n      const Y = date.getFullYear()\n      const M = String(date.getMonth() + 1).padStart(2, \'0\')\n      const D = String(date.getDate()).padStart(2, \'0\')\n      const h = String(date.getHours()).padStart(2, \'0\')\n      const m = String(date.getMinutes()).padStart(2, \'0\')\n      const s = String(date.getSeconds()).padStart(2, \'0\')\n      return Y + \'-\' + M + \'-\' + D + \' \' + h + \':\' + m + \':\' + s\n    }\n\n    function getWeekStartEnd(dateStr) {\n      const d = new Date(dateStr)\n      const day = d.getDay() || 7\n      const start = new Date(d)\n      start.setDate(d.getDate() - day + 1)\n      start.setHours(0, 0, 0, 0)\n      const end = new Date(start)\n      end.setDate(start.getDate() + 6)\n      end.setHours(23, 59, 59, 0)\n      return { start, end }\n    }\n\n    function getQuarterStartEnd(year, quarter) {\n      const q = parseInt(quarter)\n      const start = new Date(year, (q - 1) * 3, 1)\n      start.setHours(0, 0, 0, 0)\n      const end = new Date(year, q * 3, 0)\n      end.setHours(23, 59, 59, 0)\n      return { start, end }\n    }\n\n    function getDateType(compId) {\n      const config = fieldConfigs.find(c => c.id === compId)\n      return config ? config.dateType : \'date\'\n    }\n\n    function handleCustomRangeStartChange(compId, fieldName, val) {\n      if (!val) {\n        formData.value[fieldName] = []\n        return\n      }\n      const currentVal = formData.value[fieldName] || []\n      const type = getDateType(compId)\n      let startRange, endRange = null\n      \n      if (type === \'weekrange\') {\n        startRange = getWeekStartEnd(val)\n        if (currentVal && currentVal[1]) {\n          endRange = getWeekStartEnd(currentVal[1])\n        }\n      } else if (type === \'quarterrange\') {\n        const [year, quarter] = val.split(\'-\')\n        startRange = getQuarterStartEnd(year, quarter)\n        if (currentVal && currentVal[1]) {\n          const [endYear, endQuarter] = currentVal[1].split(\'-\')\n          endRange = getQuarterStartEnd(endYear, endQuarter)\n        }\n      }\n      \n      if (endRange && endRange.start >= startRange.start) {\n        formData.value[fieldName] = [formatDateTime(startRange.start), formatDateTime(endRange.end)]\n      } else {\n        formData.value[fieldName] = [formatDateTime(startRange.start), formatDateTime(startRange.end)]\n      }\n    }\n\n    function handleCustomRangeEndChange(compId, fieldName, val) {\n      if (!val) {\n        formData.value[fieldName] = []\n        return\n      }\n      const currentVal = formData.value[fieldName] || []\n      const type = getDateType(compId)\n      let endRange, startRange = null\n      \n      if (type === \'weekrange\') {\n        endRange = getWeekStartEnd(val)\n        if (currentVal && currentVal[0]) {\n          startRange = getWeekStartEnd(currentVal[0])\n        }\n      } else if (type === \'quarterrange\') {\n        const [year, quarter] = val.split(\'-\')\n        endRange = getQuarterStartEnd(year, quarter)\n        if (currentVal && currentVal[0]) {\n          const [startYear, startQuarter] = currentVal[0].split(\'-\')\n          startRange = getQuarterStartEnd(startYear, startQuarter)\n        }\n      }\n      \n      if (startRange && startRange.start <= endRange.end) {\n        formData.value[fieldName] = [formatDateTime(startRange.start), formatDateTime(endRange.end)]\n      } else {\n        formData.value[fieldName] = [formatDateTime(endRange.start), formatDateTime(endRange.end)]\n      }\n    }\n\n    function handleDateRangeChange(compId, fieldName, val) {\n      if (Array.isArray(val) && val.length === 2 && val[0] && val[1]) {\n        const start = new Date(val[0])\n        const end = new Date(val[1])\n        start.setHours(0, 0, 0, 0)\n        end.setHours(23, 59, 59, 0)\n        formData.value[fieldName] = [formatDateTime(start), formatDateTime(end)]\n      } else {\n        formData.value[fieldName] = val\n      }\n    }\n\n    function handleDateChange(compId, fieldName, val) {\n      if (!val) {\n        formData.value[fieldName] = val\n        return\n      }\n      const d = new Date(val)\n      if (isNaN(d.getTime())) {\n        formData.value[fieldName] = val\n        return\n      }\n      \n      const type = getDateType(compId)\n      if (type === \'date\' || type === \'week\' || type === \'month\' || type === \'year\') {\n        d.setHours(0, 0, 0, 0)\n        formData.value[fieldName] = formatDateTime(d)\n      } else if (type === \'datetime\') {\n        formData.value[fieldName] = formatDateTime(d)\n      } else if (type === \'quarter\') {\n        const year = Math.floor(d.getFullYear() / 1000) * 1000 + (val - 1) * 250\n        const quarter = ((val - 1) % 4) + 1\n        const range = getQuarterStartEnd(year, quarter)\n        formData.value[fieldName] = formatDateTime(range.start)\n      } else {\n        formData.value[fieldName] = val\n      }\n    }\n\n    function handleInputChange(compId, fieldName, val) {\n      formData.value[fieldName] = val\n    }\n\n    function handleSelectChange(compId, fieldName, val) {\n      formData.value[fieldName] = val\n    }\n\n    function handleRadioChange(compId, fieldName, val) {\n      formData.value[fieldName] = val\n    }\n\n    function handleCheckboxChange(compId, fieldName, val) {\n      formData.value[fieldName] = val\n    }\n\n    function handleSwitchChange(compId, fieldName, val) {\n      formData.value[fieldName] = val\n    }\n\n    function handleCascaderChange(compId, fieldName, val) {\n      formData.value[fieldName] = val\n    }\n\n    function validateForm() {\n      let isValid = true\n      validationErrors.value = {}\n      \n      for (const config of fieldConfigs) {\n        if (!config.fieldName) continue\n        \n        const value = formData.value[config.fieldName]\n        \n        if (config.required) {\n          if (!value || (typeof value === \'string\' && value.trim() === \'\') || (Array.isArray(value) && value.length === 0)) {\n            validationErrors.value[config.id] = \'此字段为必填项\'\n            isValid = false\n          }\n        }\n      }\n      \n      return isValid\n    }\n\n    function resetForm() {\n      for (const config of fieldConfigs) {\n        if (config.fieldName) {\n          formData.value[config.fieldName] = \'\'\n        }\n      }\n      validationErrors.value = {}\n      compIds.forEach(id => {\n        customStartDate.value[id] = \'\'\n        customEndDate.value[id] = \'\'\n      })\n    }\n\n    function handleSubmit(submitType) {\n      if (submitType === \'reset\') {\n        resetForm()\n        return\n      }\n      \n      if (submitType === \'submit\') {\n        if (!validateForm()) {\n          alert(\'表单校验失败，请检查必填项\')\n          return\n        }\n      }\n      \n      console.log(\'表单数据:\', formData.value)\n      alert(JSON.stringify(formData.value, null, 2))\n    }\n\n    return {\n      formData,\n      visibleComponents,\n      disabledComponents,\n      customStartDate,\n      customEndDate,\n      yearQuarterOptions,\n      validationErrors,\n      regionOptions,\n      formatDateTime,\n      handleDateRangeChange,\n      handleCustomRangeStartChange,\n      handleCustomRangeEndChange,\n      handleDateChange,\n      handleInputChange,\n      handleSelectChange,\n      handleRadioChange,\n      handleCheckboxChange,\n      handleSwitchChange,\n      handleCascaderChange,\n      handleSubmit\n    }\n  }\n}).use(ElementPlus).mount(\'#app\')'
+  const listDataMap: Record<string, unknown[]> = {}
+  const listColumnsMap: Record<string, unknown[]> = {}
+  components.forEach(c => {
+    if (c.type === 'List') {
+      listDataMap[c.id] = c.props.data as unknown[] || []
+      listColumnsMap[c.id] = c.props.columns as unknown[] || []
+    }
+  })
+  const listDataStr = JSON.stringify(listDataMap)
+  const listColumnsStr = JSON.stringify(listColumnsMap)
+
+  const appJsParts: string[] = []
+
+  appJsParts.push(`const { createApp, ref } = Vue\n\ncreateApp({\n  setup() {\n`)
+
+  appJsParts.push(`    const formData = ref({})\n`)
+  appJsParts.push(`    const visibleComponents = ref({})\n`)
+  appJsParts.push(`    const disabledComponents = ref({})\n`)
+  appJsParts.push(`    const customStartDate = ref({})\n`)
+  appJsParts.push(`    const customEndDate = ref({})\n`)
+  appJsParts.push(`    const validationErrors = ref({})\n`)
+  appJsParts.push(`    const listData = ref(${listDataStr})\n`)
+  appJsParts.push(`    const listColumns = ref(${listColumnsStr})\n`)
+  appJsParts.push(`    const listSortState = ref({})\n\n`)
+
+  appJsParts.push(`    const regionOptions = [\n`)
+  appJsParts.push(`      {"value":"110000","label":"北京市","children":[{"value":"110100","label":"北京市","children":[{"value":"110101","label":"东城区"},{"value":"110102","label":"西城区"},{"value":"110105","label":"朝阳区"},{"value":"110106","label":"丰台区"},{"value":"110107","label":"石景山区"},{"value":"110108","label":"海淀区"},{"value":"110109","label":"门头沟区"},{"value":"110111","label":"房山区"},{"value":"110112","label":"通州区"},{"value":"110113","label":"顺义区"},{"value":"110114","label":"昌平区"},{"value":"110115","label":"大兴区"},{"value":"110116","label":"怀柔区"},{"value":"110117","label":"平谷区"},{"value":"110118","label":"密云区"},{"value":"110119","label":"延庆区"}]}]},\n`)
+  appJsParts.push(`      {"value":"310000","label":"上海市","children":[{"value":"310100","label":"上海市","children":[{"value":"310101","label":"黄浦区"},{"value":"310104","label":"徐汇区"},{"value":"310105","label":"长宁区"},{"value":"310106","label":"静安区"},{"value":"310107","label":"普陀区"},{"value":"310109","label":"虹口区"},{"value":"310110","label":"杨浦区"},{"value":"310115","label":"浦东新区"},{"value":"310116","label":"闵行区"},{"value":"310117","label":"宝山区"},{"value":"310118","label":"嘉定区"},{"value":"310120","label":"金山区"},{"value":"310121","label":"松江区"},{"value":"310122","label":"青浦区"},{"value":"310123","label":"奉贤区"},{"value":"310151","label":"崇明区"}]}]},\n`)
+  appJsParts.push(`      {"value":"440000","label":"广东省","children":[{"value":"440100","label":"广州市","children":[{"value":"440103","label":"荔湾区"},{"value":"440104","label":"越秀区"},{"value":"440105","label":"海珠区"},{"value":"440106","label":"天河区"},{"value":"440111","label":"白云区"},{"value":"440112","label":"黄埔区"},{"value":"440113","label":"番禺区"},{"value":"440114","label":"花都区"},{"value":"440115","label":"南沙区"},{"value":"440117","label":"从化区"},{"value":"440118","label":"增城区"}]},{"value":"440300","label":"深圳市","children":[{"value":"440303","label":"罗湖区"},{"value":"440304","label":"福田区"},{"value":"440305","label":"南山区"},{"value":"440306","label":"宝安区"},{"value":"440307","label":"龙岗区"},{"value":"440308","label":"盐田区"},{"value":"440309","label":"龙华区"},{"value":"440310","label":"坪山区"},{"value":"440311","label":"光明区"}]}]}\n`)
+  appJsParts.push(`    ]\n\n`)
+
+  appJsParts.push(`    const quarterOptions = ${quarterOptions};\n`)
+  appJsParts.push(`    const yearQuarterOptions = ${yearQuarterOptions};\n\n`)
+  appJsParts.push(cascaderOptionsDefs)
+  appJsParts.push(`    const fieldConfigs = [${fieldConfigs}]\n\n`)
+
+  appJsParts.push(`    const compIds = [${compIds}]\n`)
+  appJsParts.push(`    compIds.forEach(id => {\n`)
+  appJsParts.push(`      visibleComponents.value[id] = true\n`)
+  appJsParts.push(`      disabledComponents.value[id] = false\n`)
+  appJsParts.push(`      customStartDate.value[id] = ''\n`)
+  appJsParts.push(`      customEndDate.value[id] = ''\n`)
+  appJsParts.push(`    })\n\n`)
+
+  appJsParts.push(`    function formatDateTime(date) {\n`)
+  appJsParts.push(`      const Y = date.getFullYear()\n`)
+  appJsParts.push(`      const M = String(date.getMonth() + 1).padStart(2, '0')\n`)
+  appJsParts.push(`      const D = String(date.getDate()).padStart(2, '0')\n`)
+  appJsParts.push(`      const h = String(date.getHours()).padStart(2, '0')\n`)
+  appJsParts.push(`      const m = String(date.getMinutes()).padStart(2, '0')\n`)
+  appJsParts.push(`      const s = String(date.getSeconds()).padStart(2, '0')\n`)
+  appJsParts.push(`      return Y + '-' + M + '-' + D + ' ' + h + ':' + m + ':' + s\n`)
+  appJsParts.push(`    }\n\n`)
+
+  appJsParts.push(`    function getWeekStartEnd(dateStr) {\n`)
+  appJsParts.push(`      const d = new Date(dateStr)\n`)
+  appJsParts.push(`      const day = d.getDay() || 7\n`)
+  appJsParts.push(`      const start = new Date(d)\n`)
+  appJsParts.push(`      start.setDate(d.getDate() - day + 1)\n`)
+  appJsParts.push(`      start.setHours(0, 0, 0, 0)\n`)
+  appJsParts.push(`      const end = new Date(start)\n`)
+  appJsParts.push(`      end.setDate(start.getDate() + 6)\n`)
+  appJsParts.push(`      end.setHours(23, 59, 59, 0)\n`)
+  appJsParts.push(`      return { start, end }\n`)
+  appJsParts.push(`    }\n\n`)
+
+  appJsParts.push(`    function getQuarterStartEnd(year, quarter) {\n`)
+  appJsParts.push(`      const q = parseInt(quarter)\n`)
+  appJsParts.push(`      const start = new Date(year, (q - 1) * 3, 1)\n`)
+  appJsParts.push(`      start.setHours(0, 0, 0, 0)\n`)
+  appJsParts.push(`      const end = new Date(year, q * 3, 0)\n`)
+  appJsParts.push(`      end.setHours(23, 59, 59, 0)\n`)
+  appJsParts.push(`      return { start, end }\n`)
+  appJsParts.push(`    }\n\n`)
+
+  appJsParts.push(`    function getDateType(compId) {\n`)
+  appJsParts.push(`      const config = fieldConfigs.find(c => c.id === compId)\n`)
+  appJsParts.push(`      return config ? config.dateType : 'date'\n`)
+  appJsParts.push(`    }\n\n`)
+
+  appJsParts.push(`    function handleCustomRangeStartChange(compId, fieldName, val) {\n`)
+  appJsParts.push(`      if (!val) {\n`)
+  appJsParts.push(`        formData.value[fieldName] = []\n`)
+  appJsParts.push(`        return\n`)
+  appJsParts.push(`      }\n`)
+  appJsParts.push(`      const currentVal = formData.value[fieldName] || []\n`)
+  appJsParts.push(`      const type = getDateType(compId)\n`)
+  appJsParts.push(`      let startRange, endRange = null\n`)
+  appJsParts.push(`      \n`)
+  appJsParts.push(`      if (type === 'weekrange') {\n`)
+  appJsParts.push(`        startRange = getWeekStartEnd(val)\n`)
+  appJsParts.push(`        if (currentVal && currentVal[1]) {\n`)
+  appJsParts.push(`          endRange = getWeekStartEnd(currentVal[1])\n`)
+  appJsParts.push(`        }\n`)
+  appJsParts.push(`      } else if (type === 'quarterrange') {\n`)
+  appJsParts.push(`        const [year, quarter] = val.split('-')\n`)
+  appJsParts.push(`        startRange = getQuarterStartEnd(year, quarter)\n`)
+  appJsParts.push(`        if (currentVal && currentVal[1]) {\n`)
+  appJsParts.push(`          const [endYear, endQuarter] = currentVal[1].split('-')\n`)
+  appJsParts.push(`          endRange = getQuarterStartEnd(endYear, endQuarter)\n`)
+  appJsParts.push(`        }\n`)
+  appJsParts.push(`      }\n`)
+  appJsParts.push(`      \n`)
+  appJsParts.push(`      if (endRange && endRange.start >= startRange.start) {\n`)
+  appJsParts.push(`        formData.value[fieldName] = [formatDateTime(startRange.start), formatDateTime(endRange.end)]\n`)
+  appJsParts.push(`      } else {\n`)
+  appJsParts.push(`        formData.value[fieldName] = [formatDateTime(startRange.start), formatDateTime(startRange.end)]\n`)
+  appJsParts.push(`      }\n`)
+  appJsParts.push(`    }\n\n`)
+
+  appJsParts.push(`    function handleCustomRangeEndChange(compId, fieldName, val) {\n`)
+  appJsParts.push(`      if (!val) {\n`)
+  appJsParts.push(`        formData.value[fieldName] = []\n`)
+  appJsParts.push(`        return\n`)
+  appJsParts.push(`      }\n`)
+  appJsParts.push(`      const currentVal = formData.value[fieldName] || []\n`)
+  appJsParts.push(`      const type = getDateType(compId)\n`)
+  appJsParts.push(`      let endRange, startRange = null\n`)
+  appJsParts.push(`      \n`)
+  appJsParts.push(`      if (type === 'weekrange') {\n`)
+  appJsParts.push(`        endRange = getWeekStartEnd(val)\n`)
+  appJsParts.push(`        if (currentVal && currentVal[0]) {\n`)
+  appJsParts.push(`          startRange = getWeekStartEnd(currentVal[0])\n`)
+  appJsParts.push(`        }\n`)
+  appJsParts.push(`      } else if (type === 'quarterrange') {\n`)
+  appJsParts.push(`        const [year, quarter] = val.split('-')\n`)
+  appJsParts.push(`        endRange = getQuarterStartEnd(year, quarter)\n`)
+  appJsParts.push(`        if (currentVal && currentVal[0]) {\n`)
+  appJsParts.push(`          const [startYear, startQuarter] = currentVal[0].split('-')\n`)
+  appJsParts.push(`          startRange = getQuarterStartEnd(startYear, startQuarter)\n`)
+  appJsParts.push(`        }\n`)
+  appJsParts.push(`      }\n`)
+  appJsParts.push(`      \n`)
+  appJsParts.push(`      if (startRange && startRange.start <= endRange.end) {\n`)
+  appJsParts.push(`        formData.value[fieldName] = [formatDateTime(startRange.start), formatDateTime(endRange.end)]\n`)
+  appJsParts.push(`      } else {\n`)
+  appJsParts.push(`        formData.value[fieldName] = [formatDateTime(endRange.start), formatDateTime(endRange.end)]\n`)
+  appJsParts.push(`      }\n`)
+  appJsParts.push(`    }\n\n`)
+
+  appJsParts.push(`    function handleDateRangeChange(compId, fieldName, val) {\n`)
+  appJsParts.push(`      if (Array.isArray(val) && val.length === 2 && val[0] && val[1]) {\n`)
+  appJsParts.push(`        const start = new Date(val[0])\n`)
+  appJsParts.push(`        const end = new Date(val[1])\n`)
+  appJsParts.push(`        start.setHours(0, 0, 0, 0)\n`)
+  appJsParts.push(`        end.setHours(23, 59, 59, 0)\n`)
+  appJsParts.push(`        formData.value[fieldName] = [formatDateTime(start), formatDateTime(end)]\n`)
+  appJsParts.push(`      } else {\n`)
+  appJsParts.push(`        formData.value[fieldName] = val\n`)
+  appJsParts.push(`      }\n`)
+  appJsParts.push(`    }\n\n`)
+
+  appJsParts.push(`    function handleDateChange(compId, fieldName, val) {\n`)
+  appJsParts.push(`      if (!val) {\n`)
+  appJsParts.push(`        formData.value[fieldName] = val\n`)
+  appJsParts.push(`        return\n`)
+  appJsParts.push(`      }\n`)
+  appJsParts.push(`      const d = new Date(val)\n`)
+  appJsParts.push(`      if (isNaN(d.getTime())) {\n`)
+  appJsParts.push(`        formData.value[fieldName] = val\n`)
+  appJsParts.push(`        return\n`)
+  appJsParts.push(`      }\n`)
+  appJsParts.push(`      \n`)
+  appJsParts.push(`      const type = getDateType(compId)\n`)
+  appJsParts.push(`      if (type === 'date' || type === 'week' || type === 'month' || type === 'year') {\n`)
+  appJsParts.push(`        d.setHours(0, 0, 0, 0)\n`)
+  appJsParts.push(`        formData.value[fieldName] = formatDateTime(d)\n`)
+  appJsParts.push(`      } else if (type === 'datetime') {\n`)
+  appJsParts.push(`        formData.value[fieldName] = formatDateTime(d)\n`)
+  appJsParts.push(`      } else if (type === 'quarter') {\n`)
+  appJsParts.push(`        const year = Math.floor(d.getFullYear() / 1000) * 1000 + (val - 1) * 250\n`)
+  appJsParts.push(`        const quarter = ((val - 1) % 4) + 1\n`)
+  appJsParts.push(`        const range = getQuarterStartEnd(year, quarter)\n`)
+  appJsParts.push(`        formData.value[fieldName] = formatDateTime(range.start)\n`)
+  appJsParts.push(`      } else {\n`)
+  appJsParts.push(`        formData.value[fieldName] = val\n`)
+  appJsParts.push(`      }\n`)
+  appJsParts.push(`    }\n\n`)
+
+  appJsParts.push(`    function handleInputChange(compId, fieldName, val) {\n`)
+  appJsParts.push(`      formData.value[fieldName] = val\n`)
+  appJsParts.push(`    }\n\n`)
+
+  appJsParts.push(`    function handleSelectChange(compId, fieldName, val) {\n`)
+  appJsParts.push(`      formData.value[fieldName] = val\n`)
+  appJsParts.push(`    }\n\n`)
+
+  appJsParts.push(`    function handleRadioChange(compId, fieldName, val) {\n`)
+  appJsParts.push(`      formData.value[fieldName] = val\n`)
+  appJsParts.push(`    }\n\n`)
+
+  appJsParts.push(`    function handleCheckboxChange(compId, fieldName, val) {\n`)
+  appJsParts.push(`      formData.value[fieldName] = val\n`)
+  appJsParts.push(`    }\n\n`)
+
+  appJsParts.push(`    function handleSwitchChange(compId, fieldName, val) {\n`)
+  appJsParts.push(`      formData.value[fieldName] = val\n`)
+  appJsParts.push(`    }\n\n`)
+
+  appJsParts.push(`    function handleCascaderChange(compId, fieldName, val) {\n`)
+  appJsParts.push(`      formData.value[fieldName] = val\n`)
+  appJsParts.push(`    }\n\n`)
+
+  appJsParts.push(`    function validateForm() {\n`)
+  appJsParts.push(`      let isValid = true\n`)
+  appJsParts.push(`      validationErrors.value = {}\n`)
+  appJsParts.push(`      \n`)
+  appJsParts.push(`      for (const config of fieldConfigs) {\n`)
+  appJsParts.push(`        if (!config.fieldName) continue\n`)
+  appJsParts.push(`        \n`)
+  appJsParts.push(`        const value = formData.value[config.fieldName]\n`)
+  appJsParts.push(`        \n`)
+  appJsParts.push(`        if (config.required) {\n`)
+  appJsParts.push(`          if (!value || (typeof value === 'string' && value.trim() === '') || (Array.isArray(value) && value.length === 0)) {\n`)
+  appJsParts.push(`            validationErrors.value[config.id] = '此字段为必填项'\n`)
+  appJsParts.push(`            isValid = false\n`)
+  appJsParts.push(`          }\n`)
+  appJsParts.push(`        }\n`)
+  appJsParts.push(`      }\n`)
+  appJsParts.push(`      \n`)
+  appJsParts.push(`      return isValid\n`)
+  appJsParts.push(`    }\n\n`)
+
+  appJsParts.push(`    function resetForm() {\n`)
+  appJsParts.push(`      for (const config of fieldConfigs) {\n`)
+  appJsParts.push(`        if (config.fieldName) {\n`)
+  appJsParts.push(`          formData.value[fieldName] = ''\n`)
+  appJsParts.push(`        }\n`)
+  appJsParts.push(`      }\n`)
+  appJsParts.push(`      validationErrors.value = {}\n`)
+  appJsParts.push(`      compIds.forEach(id => {\n`)
+  appJsParts.push(`        customStartDate.value[id] = ''\n`)
+  appJsParts.push(`        customEndDate.value[id] = ''\n`)
+  appJsParts.push(`      })\n`)
+  appJsParts.push(`    }\n\n`)
+
+  appJsParts.push(`    function handleSubmit(submitType) {\n`)
+  appJsParts.push(`      if (submitType === 'reset') {\n`)
+  appJsParts.push(`        resetForm()\n`)
+  appJsParts.push(`        return\n`)
+  appJsParts.push(`      }\n`)
+  appJsParts.push(`      \n`)
+  appJsParts.push(`      if (submitType === 'submit') {\n`)
+  appJsParts.push(`        if (!validateForm()) {\n`)
+  appJsParts.push(`          alert('表单校验失败，请检查必填项')\n`)
+  appJsParts.push(`          return\n`)
+  appJsParts.push(`        }\n`)
+  appJsParts.push(`      }\n`)
+  appJsParts.push(`      \n`)
+  appJsParts.push(`      console.log('表单数据:', formData.value)\n`)
+  appJsParts.push(`      alert(JSON.stringify(formData.value, null, 2))\n`)
+  appJsParts.push(`    }\n\n`)
+
+  appJsParts.push(`    function isImageUrl(value) {\n`)
+  appJsParts.push(`      const str = String(value)\n`)
+  appJsParts.push(`      return /\\.(jpg|jpeg|png|gif|svg|webp)$/i.test(str) || str.startsWith('data:image')\n`)
+  appJsParts.push(`    }\n\n`)
+
+  appJsParts.push(`    function initLazyImages() {\n`)
+  appJsParts.push(`      const images = document.querySelectorAll('.lazy-image')\n`)
+  appJsParts.push(`      if (images.length === 0) return\n`)
+  appJsParts.push(`      \n`)
+  appJsParts.push(`      const observer = new IntersectionObserver((entries) => {\n`)
+  appJsParts.push(`        entries.forEach(entry => {\n`)
+  appJsParts.push(`          if (entry.isIntersecting) {\n`)
+  appJsParts.push(`            const img = entry.target\n`)
+  appJsParts.push(`            const src = img.getAttribute('data-src')\n`)
+  appJsParts.push(`            if (src) {\n`)
+  appJsParts.push(`              img.src = src\n`)
+  appJsParts.push(`              img.classList.remove('lazy-image')\n`)
+  appJsParts.push(`            }\n`)
+  appJsParts.push(`            observer.unobserve(img)\n`)
+  appJsParts.push(`          }\n`)
+  appJsParts.push(`        })\n`)
+  appJsParts.push(`      }, { rootMargin: '100px' })\n`)
+  appJsParts.push(`      \n`)
+  appJsParts.push(`      images.forEach(img => observer.observe(img))\n`)
+  appJsParts.push(`    }\n\n`)
+
+  appJsParts.push(`    setTimeout(initLazyImages, 100)\n\n`)
+
+  appJsParts.push(`    function getListData(compId) {\n`)
+  appJsParts.push(`      const data = listData.value[compId] || []\n`)
+  appJsParts.push(`      const sortState = listSortState.value[compId] || { key: '', order: 'ascending' }\n`)
+  appJsParts.push(`      \n`)
+  appJsParts.push(`      if (!sortState.key) {\n`)
+  appJsParts.push(`        return data\n`)
+  appJsParts.push(`      }\n`)
+  appJsParts.push(`      \n`)
+  appJsParts.push(`      const columns = listColumns.value[compId] || []\n`)
+  appJsParts.push(`      const column = columns.find(c => c.key === sortState.key)\n`)
+  appJsParts.push(`      const sortType = column ? column.sortType || 'string' : 'string'\n`)
+  appJsParts.push(`      \n`)
+  appJsParts.push(`      return [...data].sort((a, b) => {\n`)
+  appJsParts.push(`        const valA = a[sortState.key]\n`)
+  appJsParts.push(`        const valB = b[sortState.key]\n`)
+  appJsParts.push(`        \n`)
+  appJsParts.push(`        if (sortType === 'number') {\n`)
+  appJsParts.push(`          const numA = parseFloat(String(valA)) || 0\n`)
+  appJsParts.push(`          const numB = parseFloat(String(valB)) || 0\n`)
+  appJsParts.push(`          return sortState.order === 'ascending' ? numA - numB : numB - numA\n`)
+  appJsParts.push(`        } else if (sortType === 'date') {\n`)
+  appJsParts.push(`          const dateA = new Date(String(valA))\n`)
+  appJsParts.push(`          const dateB = new Date(String(valB))\n`)
+  appJsParts.push(`          return sortState.order === 'ascending' ? dateA.getTime() - dateB.getTime() : dateB.getTime() - dateA.getTime()\n`)
+  appJsParts.push(`        } else {\n`)
+  appJsParts.push(`          return sortState.order === 'ascending' ? String(valA).localeCompare(String(valB)) : String(valB).localeCompare(String(valA))\n`)
+  appJsParts.push(`        }\n`)
+  appJsParts.push(`      })\n`)
+  appJsParts.push(`    }\n\n`)
+
+  appJsParts.push(`    function handleListSort(compId, { prop, order }) {\n`)
+  appJsParts.push(`      listSortState.value[compId] = { key: prop, order: order }\n`)
+  appJsParts.push(`    }\n\n`)
+
+  appJsParts.push(`    return {\n`)
+  appJsParts.push(`      formData,\n`)
+  appJsParts.push(`      visibleComponents,\n`)
+  appJsParts.push(`      disabledComponents,\n`)
+  appJsParts.push(`      customStartDate,\n`)
+  appJsParts.push(`      customEndDate,\n`)
+  appJsParts.push(`      yearQuarterOptions,\n`)
+  appJsParts.push(`      validationErrors,\n`)
+  appJsParts.push(`      regionOptions,\n`)
+  appJsParts.push(`      formatDateTime,\n`)
+  appJsParts.push(`      handleDateRangeChange,\n`)
+  appJsParts.push(`      handleCustomRangeStartChange,\n`)
+  appJsParts.push(`      handleCustomRangeEndChange,\n`)
+  appJsParts.push(`      handleDateChange,\n`)
+  appJsParts.push(`      handleInputChange,\n`)
+  appJsParts.push(`      handleSelectChange,\n`)
+  appJsParts.push(`      handleRadioChange,\n`)
+  appJsParts.push(`      handleCheckboxChange,\n`)
+  appJsParts.push(`      handleSwitchChange,\n`)
+  appJsParts.push(`      handleCascaderChange,\n`)
+  appJsParts.push(`      handleSubmit,\n`)
+  appJsParts.push(`      isImageUrl,\n`)
+  appJsParts.push(`      getListData,\n`)
+  appJsParts.push(`      handleListSort\n`)
+  appJsParts.push(`    }\n`)
+  appJsParts.push(`  }\n`)
+  appJsParts.push(`}).use(ElementPlus, { locale: ElementPlusLocaleZhCn }).mount('#app')`)
+
+  return appJsParts.join('')
 }
 
 function getFieldName(component: CanvasComponent): string {
@@ -183,11 +532,14 @@ function generateComponentHtml(component: CanvasComponent, labelWidth: string, c
     case 'Grid':
       contentHtml = generateGridHtml(component, labelWidth, cascaderOptionsMap)
       break
+    case 'List':
+      contentHtml = generateListHtml(component)
+      break
     default:
       contentHtml = '<div>未知组件: ' + component.type + '</div>'
   }
 
-  if (component.type === 'Text' || component.type === 'Heading' || component.type === 'Button' || component.type === 'Card' || component.type === 'Divider') {
+  if (component.type === 'Text' || component.type === 'Heading' || component.type === 'Button' || component.type === 'Card' || component.type === 'Divider' || component.type === 'List') {
     return contentHtml
   }
 
@@ -369,4 +721,25 @@ function generateGridHtml(component: CanvasComponent, labelWidth: string, cascad
   const childrenHtml = children.map(c => generateComponentHtml(c, labelWidth, cascaderOptionsMap)).join('\n')
 
   return '<div class="grid-container" style="gap: ' + gutter + 'px;"><div class="grid-column" v-for="(col, idx) in ' + columns + '" :key="idx">' + childrenHtml + '</div></div>'
+}
+
+function generateListHtml(component: CanvasComponent): string {
+  const columns = component.props.columns as Array<{ key: string; label: string; width?: string; sortable?: boolean; sortType?: string }> || []
+  const data = component.props.data as Array<Record<string, unknown>> || []
+  const maxHeight = component.props.maxHeight as string || 'auto'
+  const useVirtualScroll = data.length > 100
+
+  const columnsHtml = columns.map((col) => {
+    const width = col.width ? ' :width="' + JSON.stringify(col.width) + '"' : ''
+    const sortable = col.sortable ? ' :sortable="true"' : ''
+    const prop = col.key
+    const label = col.label
+
+    return '<el-table-column' + width + sortable + ' :prop="' + JSON.stringify(prop) + '" :label="' + JSON.stringify(label) + '"><template #default="{ row }"><span v-if="isImageUrl(row[\'' + prop + '\'])" class="list-image-container"><img :data-src="row[\'' + prop + '\']" class="lazy-image" :alt="' + JSON.stringify(label) + '" /></span><span v-else class="list-cell-text" :title="String(row[\'' + prop + '\'])">{{ row[\'' + prop + '\'] }}</span></template></el-table-column>'
+  }).join('\n')
+
+  const height = maxHeight === 'auto' ? '600' : maxHeight.replace('px', '')
+  const virtualScrollAttr = useVirtualScroll ? ' :virtual-scroll="true" :virtual-scroll-item-size="48"' : ''
+
+  return '<div class="list-component"><el-table :data="getListData(\'' + component.id + '\')" :height="' + height + '"' + virtualScrollAttr + ' class="custom-list-table" @sort-change="(e) => handleListSort(\'' + component.id + '\', e)" border>' + columnsHtml + '</el-table></div>'
 }

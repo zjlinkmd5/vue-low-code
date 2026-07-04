@@ -202,6 +202,39 @@ export const componentList: ComponentConfig[] = [
       label: '',
       derivedFields: []
     }
+  },
+  {
+    id: 'list',
+    type: 'List',
+    label: '列表',
+    icon: 'el-icon-s-list',
+    defaultProps: {
+      columns: [
+        { key: 'name', label: '名称', width: '200px', sortable: true, sortType: 'string' },
+        { key: 'value', label: '数值', width: '150px', sortable: true, sortType: 'number' },
+        { key: 'date', label: '日期', width: '150px', sortable: true, sortType: 'date' }
+      ],
+      data: [
+        { name: '项目1', value: '1000', date: '2024-01-01' },
+        { name: '项目2', value: '2000', date: '2024-01-02' },
+        { name: '项目3', value: '3000', date: '2024-01-03' }
+      ],
+      maxHeight: 'auto',
+      pageSize: 10,
+      label: '',
+      derivedFields: []
+    }
+  },
+  {
+    id: 'file-preview',
+    type: 'FilePreview',
+    label: '文件预览',
+    icon: 'el-icon-file',
+    defaultProps: {
+      label: '文件预览',
+      buttonText: '打开文件预览',
+      derivedFields: []
+    }
   }
 ]
 

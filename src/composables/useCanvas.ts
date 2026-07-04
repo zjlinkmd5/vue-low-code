@@ -797,6 +797,7 @@ function collectFieldNames(list: CanvasComponent[], names: string[]) {
     selectedId.value = null
     idCounter = 0
     localStorage.removeItem(STORAGE_KEY)
+    forceRefresh()
   }
 
   function setGlobalConfig(config: { defaultSize: 'small' | 'medium' | 'large'; labelWidth: string }) {
