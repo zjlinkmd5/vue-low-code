@@ -21,13 +21,13 @@ function saveToStorage(data: CanvasComponent[]) {
 function loadGlobalConfig() {
   try {
     const data = localStorage.getItem(GLOBAL_CONFIG_KEY)
-    return data ? JSON.parse(data) : { defaultSize: 'medium' as const }
+    return data ? JSON.parse(data) : { defaultSize: 'medium' as const, labelWidth: 'auto' }
   } catch {
-    return { defaultSize: 'medium' as const }
+    return { defaultSize: 'medium' as const, labelWidth: 'auto' }
   }
 }
 
-function saveGlobalConfig(config: { defaultSize: 'small' | 'medium' | 'large' }) {
+function saveGlobalConfig(config: { defaultSize: 'small' | 'medium' | 'large'; labelWidth: string }) {
   localStorage.setItem(GLOBAL_CONFIG_KEY, JSON.stringify(config))
 }
 
@@ -41,6 +41,7 @@ const dragState = ref<DragState>({
 })
 const globalConfig = ref(loadGlobalConfig())
 const refreshTrigger = ref(0)
+const canvasWidth = ref(1200)
 
 let idCounter = components.value.length > 0 
   ? Math.max(...components.value.map(c => {
@@ -112,13 +113,33 @@ function getFieldValue(fieldName: string): unknown {
   return null
 }
 
+function formatDateValue(dateStr: string): string {
+  const d = new Date(dateStr)
+  if (isNaN(d.getTime())) return dateStr
+  const Y = d.getFullYear()
+  const M = String(d.getMonth() + 1).padStart(2, '0')
+  const D = String(d.getDate()).padStart(2, '0')
+  const h = String(d.getHours()).padStart(2, '0')
+  const m = String(d.getMinutes()).padStart(2, '0')
+  const s = String(d.getSeconds()).padStart(2, '0')
+  return `${Y}-${M}-${D} ${h}:${m}:${s}`
+}
+
 function getAllFieldValues(): Record<string, unknown> {
   const values: Record<string, unknown> = {}
-  
+
   function collectValues(list: CanvasComponent[]) {
     for (const comp of list) {
       if (comp.fieldBinding?.fieldName) {
-        values[comp.fieldBinding.fieldName] = (comp as unknown as { value?: unknown }).value ?? comp.props.value ?? comp.props.content ?? comp.props.text ?? null
+        let rawValue = (comp as unknown as { value?: unknown }).value ?? comp.props.value ?? comp.props.content ?? comp.props.text ?? null
+
+        if (comp.type === 'DatePicker' && rawValue && typeof rawValue === 'string') {
+          rawValue = formatDateValue(rawValue)
+        } else if (comp.type === 'DateRangePicker' && Array.isArray(rawValue) && rawValue.length === 2) {
+          rawValue = [formatDateValue(rawValue[0] as string), formatDateValue(rawValue[1] as string)]
+        }
+
+        values[comp.fieldBinding.fieldName] = rawValue
       }
       if (comp.type === 'Select') {
         const attrNames = comp.props.customAttrNames as string[] || []
@@ -166,6 +187,9 @@ function resetForm() {
     for (const comp of list) {
       if (comp.type === 'Input' || comp.type === 'Select' || comp.type === 'DatePicker') {
         (comp as unknown as { value?: unknown }).value = ''
+      }
+      if (comp.type === 'DateRangePicker') {
+        (comp as unknown as { value?: unknown }).value = null
       }
       if (comp.children) {
         resetComponent(comp.children)
@@ -285,6 +309,52 @@ export function useCanvas() {
   const selectedComponent = computed(() => {
     if (!selectedId.value) return null
     return findComponent(components.value, selectedId.value)
+  })
+
+  const maxLabelWidth = computed(() => {
+    let maxWidth = 0
+    function processComponent(comp: CanvasComponent) {
+      if (['Input', 'Select', 'DatePicker', 'DateRangePicker'].includes(comp.type)) {
+        const label = comp.props.label as string || ''
+        if (label) {
+          let width = 0
+          for (const char of label) {
+            if (/[\u4e00-\u9fa5]/.test(char)) {
+              width += 16
+            } else {
+              width += 8
+            }
+          }
+          width += 24
+          if (width > maxWidth) maxWidth = width
+        }
+      }
+      if (comp.children) {
+        comp.children.forEach(processComponent)
+      }
+    }
+    components.value.forEach(processComponent)
+    return maxWidth
+  })
+
+  const formLabelWidth = computed(() => {
+    const lw = globalConfig.value.labelWidth as string
+    if (lw && lw !== 'auto') {
+      return lw
+    }
+    return maxLabelWidth.value > 0 ? `${maxLabelWidth.value}px` : 'auto'
+  })
+
+  const labelPosition = computed(() => {
+    refreshTrigger.value
+    const threshold = canvasWidth.value / 2
+    const lw = globalConfig.value.labelWidth as string
+    if (lw && lw !== 'auto') {
+      const px = parseInt(lw)
+      if (!isNaN(px) && px > threshold) return 'top'
+      return 'left'
+    }
+    return maxLabelWidth.value > threshold ? 'top' : 'left'
   })
 
   const fieldNames = computed(() => {
@@ -552,15 +622,32 @@ function collectFieldNames(list: CanvasComponent[], names: string[]) {
     const errors: ValidationResult['errors'] = []
     
     function validateComponent(comp: CanvasComponent) {
-      if (['Input', 'Select', 'DatePicker'].includes(comp.type)) {
+      if (['Input', 'Select', 'DatePicker', 'DateRangePicker'].includes(comp.type)) {
         const value = comp.value ?? ''
         const required = comp.props.required as boolean || false
+
+        if (comp.type === 'DateRangePicker') {
+          const arr = value as unknown[] | null
+          if (required && (!arr || !Array.isArray(arr) || arr.length < 2 || !arr[0] || !arr[1])) {
+            errors.push({
+              componentId: comp.id,
+              componentType: comp.type,
+              fieldName: comp.fieldBinding?.fieldName || comp.type,
+              message: '此字段为必填项'
+            })
+          }
+          if (comp.children) {
+            comp.children.forEach(validateComponent)
+          }
+          return
+        }
+
         const inputType = comp.props.inputType as string || 'text'
         const maxLength = comp.props.maxLength as number | null
         const minValue = comp.props.minValue as number | null
         const maxValue = comp.props.maxValue as number | null
         const decimalPlaces = comp.props.decimalPlaces as number | null
-        
+
         if (required && (!value || String(value).trim() === '')) {
           errors.push({
             componentId: comp.id,
@@ -570,7 +657,7 @@ function collectFieldNames(list: CanvasComponent[], names: string[]) {
           })
           return
         }
-        
+
         if (!value) {
           return
         }
@@ -712,8 +799,12 @@ function collectFieldNames(list: CanvasComponent[], names: string[]) {
     localStorage.removeItem(STORAGE_KEY)
   }
 
-  function setGlobalConfig(config: { defaultSize: 'small' | 'medium' | 'large' }) {
+  function setGlobalConfig(config: { defaultSize: 'small' | 'medium' | 'large'; labelWidth: string }) {
     globalConfig.value = { ...config }
+  }
+
+  function setCanvasWidth(width: number) {
+    canvasWidth.value = width
   }
 
   return {
@@ -723,6 +814,8 @@ function collectFieldNames(list: CanvasComponent[], names: string[]) {
     dragState,
     globalConfig,
     fieldNames,
+    formLabelWidth,
+    labelPosition,
     addComponent,
     removeComponent,
     moveComponent,
@@ -739,6 +832,7 @@ function collectFieldNames(list: CanvasComponent[], names: string[]) {
     setDragState,
     clearCanvas,
     setGlobalConfig,
+    setCanvasWidth,
     findComponent,
     cleanupAttrNameReferences,
     forceRefresh,

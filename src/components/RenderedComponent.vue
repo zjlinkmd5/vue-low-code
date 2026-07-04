@@ -2,6 +2,7 @@
 import { computed, ref, watch } from 'vue'
 import type { CanvasComponent } from '@/types'
 import { useCanvas } from '@/composables/useCanvas'
+import { regionCascaderData, type CascaderOption } from '@/data/regionData'
 
 const props = defineProps<{
   component: CanvasComponent
@@ -22,7 +23,7 @@ const emit = defineEmits<{
   buttonClick: [submitType: string]
 }>()
 
-const { isVisible: checkVisible, isComponentDisabled: checkDisabled, getComponentSize, forceRefresh, refreshTrigger } = useCanvas()
+const { isVisible: checkVisible, isComponentDisabled: checkDisabled, getComponentSize, forceRefresh, refreshTrigger, formLabelWidth, labelPosition } = useCanvas()
 
 const validationError = ref('')
 
@@ -156,6 +157,211 @@ const selectOptions = computed(() => {
   return props.component.props.options as { label: string; value: string; customAttrs?: Record<string, string> }[] || []
 })
 
+const labelText = computed(() => {
+  return props.component.props.label as string || ''
+})
+
+const isRequired = computed(() => {
+  return props.component.props.required as boolean || false
+})
+
+const labelStyle = computed(() => {
+  if (labelPosition.value === 'top') {
+    return { width: '100%', textAlign: 'left' as const }
+  }
+  return { width: formLabelWidth.value, flexShrink: 0, textAlign: 'right' as const }
+})
+
+const datePickerFormat = computed(() => {
+  const type = props.component.props.type as string
+  if (type === 'week') return 'YYYY[年的第]w[周]'
+  if (type === 'weekrange') return 'YYYY[年的第]w[周]'
+  if (type === 'month' || type === 'monthrange') return 'YYYY[年]MM[月]'
+  if (type === 'year' || type === 'yearrange') return 'YYYY[年]'
+  if (type === 'quarter' || type === 'quarterrange') return 'YYYY[年第]Q[季度]'
+  if (type === 'datetime' || type === 'datetimerange') return 'YYYY-MM-DD HH:mm:ss'
+  return 'YYYY-MM-DD'
+})
+
+const datePickerValueFormat = computed(() => {
+  const type = props.component.props.type as string
+  if (type === 'datetime' || type === 'datetimerange') return 'YYYY-MM-DD HH:mm:ss'
+  return 'YYYY-MM-DD'
+})
+
+const isCustomRangeType = computed(() => {
+  const type = props.component.props.type as string
+  return type === 'weekrange' || type === 'quarterrange'
+})
+
+const customRangeStartType = computed(() => {
+  const type = props.component.props.type as string
+  if (type === 'weekrange') return 'week'
+  if (type === 'quarterrange') return 'quarter'
+  return 'date'
+})
+
+function getWeekStartEnd(dateStr: string): { start: Date; end: Date } {
+  const d = new Date(dateStr)
+  const day = d.getDay() || 7
+  const start = new Date(d)
+  start.setDate(d.getDate() - day + 1)
+  start.setHours(0, 0, 0, 0)
+  const end = new Date(start)
+  end.setDate(start.getDate() + 6)
+  end.setHours(23, 59, 59, 0)
+  return { start, end }
+}
+
+function getQuarterStartEnd(dateStr: string): { start: Date; end: Date } {
+  const d = new Date(dateStr)
+  const quarter = Math.floor(d.getMonth() / 3)
+  const start = new Date(d.getFullYear(), quarter * 3, 1)
+  start.setHours(0, 0, 0, 0)
+  const end = new Date(d.getFullYear(), quarter * 3 + 3, 0)
+  end.setHours(23, 59, 59, 0)
+  return { start, end }
+}
+
+function formatDateTime(date: Date): string {
+  const Y = date.getFullYear()
+  const M = String(date.getMonth() + 1).padStart(2, '0')
+  const D = String(date.getDate()).padStart(2, '0')
+  const h = String(date.getHours()).padStart(2, '0')
+  const m = String(date.getMinutes()).padStart(2, '0')
+  const s = String(date.getSeconds()).padStart(2, '0')
+  return `${Y}-${M}-${D} ${h}:${m}:${s}`
+}
+
+function handleCustomRangeStartChange(val: unknown) {
+  if (!val) {
+    props.component.value = []
+    forceRefresh()
+    return
+  }
+  const type = props.component.props.type as string
+  const currentVal = props.component.value as string[] | undefined
+  let startRange: { start: Date; end: Date }
+  let endRange: { start: Date; end: Date } | null = null
+  
+  if (type === 'weekrange') {
+    startRange = getWeekStartEnd(val as string)
+    if (currentVal && currentVal[1]) {
+      endRange = getWeekStartEnd(currentVal[1])
+    }
+  } else {
+    startRange = getQuarterStartEnd(val as string)
+    if (currentVal && currentVal[1]) {
+      endRange = getQuarterStartEnd(currentVal[1])
+    }
+  }
+  
+  if (endRange && endRange.start >= startRange.start) {
+    props.component.value = [formatDateTime(startRange.start), formatDateTime(endRange.end)]
+  } else {
+    props.component.value = [formatDateTime(startRange.start), formatDateTime(startRange.end)]
+  }
+  forceRefresh()
+}
+
+function handleCustomRangeEndChange(val: unknown) {
+  if (!val) {
+    props.component.value = []
+    forceRefresh()
+    return
+  }
+  const type = props.component.props.type as string
+  const currentVal = props.component.value as string[] | undefined
+  let endRange: { start: Date; end: Date }
+  let startRange: { start: Date; end: Date } | null = null
+  
+  if (type === 'weekrange') {
+    endRange = getWeekStartEnd(val as string)
+    if (currentVal && currentVal[0]) {
+      startRange = getWeekStartEnd(currentVal[0])
+    }
+  } else {
+    endRange = getQuarterStartEnd(val as string)
+    if (currentVal && currentVal[0]) {
+      startRange = getQuarterStartEnd(currentVal[0])
+    }
+  }
+  
+  if (startRange && startRange.start <= endRange.end) {
+    props.component.value = [formatDateTime(startRange.start), formatDateTime(endRange.end)]
+  } else {
+    props.component.value = [formatDateTime(endRange.start), formatDateTime(endRange.end)]
+  }
+  forceRefresh()
+}
+
+function handleDateRangeChange(val: unknown) {
+  if (Array.isArray(val) && val.length === 2 && val[0] && val[1]) {
+    const start = new Date(val[0] as string)
+    const end = new Date(val[1] as string)
+    start.setHours(0, 0, 0, 0)
+    end.setHours(23, 59, 59, 0)
+    props.component.value = [formatDateTime(start), formatDateTime(end)]
+  } else {
+    props.component.value = val
+  }
+  forceRefresh()
+}
+
+function handleDateChange(val: unknown) {
+  if (!val) {
+    props.component.value = val
+    forceRefresh()
+    return
+  }
+  const type = props.component.props.type as string
+  const d = new Date(val as string)
+  if (isNaN(d.getTime())) {
+    props.component.value = val
+    forceRefresh()
+    return
+  }
+  
+  if (type === 'date' || type === 'week' || type === 'month' || type === 'year' || type === 'quarter') {
+    d.setHours(0, 0, 0, 0)
+    props.component.value = formatDateTime(d)
+  } else if (type === 'datetime') {
+    props.component.value = formatDateTime(d)
+  } else {
+    props.component.value = val
+  }
+  forceRefresh()
+}
+
+const customStartDateValue = computed(() => {
+  const val = props.component.value
+  if (Array.isArray(val) && val.length >= 1 && val[0]) {
+    return val[0] as string
+  }
+  return ''
+})
+
+const customEndDateValue = computed(() => {
+  const val = props.component.value
+  if (Array.isArray(val) && val.length >= 2 && val[1]) {
+    return val[1] as string
+  }
+  return ''
+})
+
+const cascaderOptions = computed(() => {
+  const dataType = props.component.props.dataType as string
+  if (dataType === 'region') {
+    return regionCascaderData
+  }
+  return props.component.props.options as CascaderOption[] || []
+})
+
+function handleCascaderChange(val: unknown) {
+  props.component.value = val
+  forceRefresh()
+}
+
 const customStyle = computed(() => {
   const styleStr = props.component.props.customStyle as string || ''
   const styles: Record<string, string> = {}
@@ -276,52 +482,164 @@ function handleSelectChange(value: unknown) {
       class="image-component"
     />
     
-    <div v-else-if="component.type === 'Input'" class="form-field">
-      <el-input
-        :model-value="component.value"
-        @update:model-value="handleInputChange"
-        :placeholder="component.props.placeholder as string"
-        :size="getComponentSize(component)"
-        :disabled="disabled"
-        :clearable="component.props.clearable as boolean"
-        :maxlength="component.props.maxLength as number || undefined"
-      />
-      <span v-if="validationError" class="validation-error">{{ validationError }}</span>
-    </div>
-    
-    <div v-else-if="component.type === 'Select'" class="form-field">
-      <el-select
-        :model-value="component.value"
-        @update:model-value="handleSelectChange($event)"
-        :placeholder="component.props.placeholder as string"
-        :size="getComponentSize(component)"
-        :disabled="disabled"
-        style="width: 100%;"
-      >
-        <el-option
-          v-for="(opt, index) in selectOptions"
-          :key="index"
-          :label="opt.label"
-          :value="opt.value"
+    <div v-else-if="component.type === 'Input'" class="form-field" :class="{ 'form-field-vertical': labelPosition === 'top' && !!labelText }">
+      <label v-if="labelText" class="form-label" :style="labelStyle">
+        <span v-if="isRequired" class="required-asterisk">*</span>
+        {{ labelText }}
+      </label>
+      <div class="form-content">
+        <el-input
+          :model-value="component.value"
+          @update:model-value="handleInputChange"
+          :placeholder="component.props.placeholder as string"
+          :size="getComponentSize(component)"
+          :disabled="disabled"
+          :clearable="component.props.clearable as boolean"
+          :maxlength="component.props.maxLength as number || undefined"
         />
-      </el-select>
-      <span v-if="validationError" class="validation-error">{{ validationError }}</span>
+        <span v-if="validationError" class="validation-error">{{ validationError }}</span>
+      </div>
+    </div>
+
+    <div v-else-if="component.type === 'Textarea'" class="form-field" :class="{ 'form-field-vertical': labelPosition === 'top' && !!labelText }">
+      <label v-if="labelText" class="form-label" :style="labelStyle">
+        <span v-if="isRequired" class="required-asterisk">*</span>
+        {{ labelText }}
+      </label>
+      <div class="form-content">
+        <el-input
+          :model-value="component.value"
+          @update:model-value="handleInputChange"
+          type="textarea"
+          :placeholder="component.props.placeholder as string"
+          :size="getComponentSize(component)"
+          :disabled="disabled"
+          :clearable="component.props.clearable as boolean"
+          :maxlength="component.props.maxLength as number || undefined"
+          :rows="component.props.rows as number || 4"
+          :show-word-limit="component.props.showWordLimit as boolean"
+        />
+        <span v-if="validationError" class="validation-error">{{ validationError }}</span>
+      </div>
     </div>
     
-    <div v-else-if="component.type === 'DatePicker'" class="form-field">
-      <el-date-picker
-        :model-value="component.value"
-        @update:model-value="(val: unknown) => { component.value = val; forceRefresh() }"
-        :type="component.props.type as string"
-        :range="component.props.range as boolean"
-        :placeholder="component.props.placeholder as string"
-        :size="getComponentSize(component)"
-        :disabled="disabled"
-        style="width: 100%;"
-      />
-      <span v-if="validationError" class="validation-error">{{ validationError }}</span>
+    <div v-else-if="component.type === 'Select'" class="form-field" :class="{ 'form-field-vertical': labelPosition === 'top' && !!labelText }">
+      <label v-if="labelText" class="form-label" :style="labelStyle">
+        <span v-if="isRequired" class="required-asterisk">*</span>
+        {{ labelText }}
+      </label>
+      <div class="form-content">
+        <el-select
+          :model-value="component.value"
+          @update:model-value="handleSelectChange($event)"
+          :placeholder="component.props.placeholder as string"
+          :size="getComponentSize(component)"
+          :disabled="disabled"
+          style="width: 100%;"
+        >
+          <el-option
+            v-for="(opt, index) in selectOptions"
+            :key="index"
+            :label="opt.label"
+            :value="opt.value"
+          />
+        </el-select>
+        <span v-if="validationError" class="validation-error">{{ validationError }}</span>
+      </div>
     </div>
     
+    <div v-else-if="component.type === 'DatePicker'" class="form-field" :class="{ 'form-field-vertical': labelPosition === 'top' && !!labelText }">
+      <label v-if="labelText" class="form-label" :style="labelStyle">
+        <span v-if="isRequired" class="required-asterisk">*</span>
+        {{ labelText }}
+      </label>
+      <div class="form-content">
+        <el-date-picker
+          :model-value="component.value"
+          @update:model-value="handleDateChange"
+          :type="component.props.type as string"
+          :format="datePickerFormat"
+          :value-format="datePickerValueFormat"
+          :placeholder="component.props.placeholder as string"
+          :size="getComponentSize(component)"
+          :disabled="disabled"
+          style="width: 100%;"
+        />
+        <span v-if="validationError" class="validation-error">{{ validationError }}</span>
+      </div>
+    </div>
+
+    <div v-else-if="component.type === 'DateRangePicker'" class="form-field" :class="{ 'form-field-vertical': labelPosition === 'top' && !!labelText }">
+      <label v-if="labelText" class="form-label" :style="labelStyle">
+        <span v-if="isRequired" class="required-asterisk">*</span>
+        {{ labelText }}
+      </label>
+      <div class="form-content">
+        <template v-if="isCustomRangeType">
+          <div class="custom-range-picker">
+            <el-date-picker
+              :model-value="customStartDateValue"
+              @update:model-value="handleCustomRangeStartChange"
+              :type="customRangeStartType"
+              :format="datePickerFormat"
+              :value-format="datePickerValueFormat"
+              :placeholder="component.props.startPlaceholder as string"
+              :size="getComponentSize(component)"
+              :disabled="disabled"
+              class="range-picker-item"
+            />
+            <span class="range-separator-text">至</span>
+            <el-date-picker
+              :model-value="customEndDateValue"
+              @update:model-value="handleCustomRangeEndChange"
+              :type="customRangeStartType"
+              :format="datePickerFormat"
+              :value-format="datePickerValueFormat"
+              :placeholder="component.props.endPlaceholder as string"
+              :size="getComponentSize(component)"
+              :disabled="disabled"
+              class="range-picker-item"
+            />
+          </div>
+        </template>
+        <template v-else>
+          <el-date-picker
+            :model-value="component.value as [string, string] | null"
+            @update:model-value="handleDateRangeChange"
+            :type="component.props.type as string"
+            :format="datePickerFormat"
+            :value-format="datePickerValueFormat"
+            :start-placeholder="component.props.startPlaceholder as string"
+            :end-placeholder="component.props.endPlaceholder as string"
+            :size="getComponentSize(component)"
+            :disabled="disabled"
+            range-separator="至"
+            style="width: 100%;"
+          />
+        </template>
+        <span v-if="validationError" class="validation-error">{{ validationError }}</span>
+      </div>
+    </div>
+
+    <div v-else-if="component.type === 'Cascader'" class="form-field" :class="{ 'form-field-vertical': labelPosition === 'top' && !!labelText }">
+      <label v-if="labelText" class="form-label" :style="labelStyle">
+        <span v-if="isRequired" class="required-asterisk">*</span>
+        {{ labelText }}
+      </label>
+      <div class="form-content">
+        <el-cascader
+          :model-value="component.value"
+          @update:model-value="handleCascaderChange"
+          :options="cascaderOptions"
+          :placeholder="component.props.placeholder as string"
+          :size="getComponentSize(component)"
+          :disabled="disabled"
+          style="width: 100%;"
+        />
+        <span v-if="validationError" class="validation-error">{{ validationError }}</span>
+      </div>
+    </div>
+
     <el-card
       v-else-if="component.type === 'Card'"
       :title="component.props.title as string"
@@ -336,15 +654,7 @@ function handleSelectChange(value: unknown) {
     >
       {{ component.props.content }}
     </el-divider>
-    
-    <el-space
-      v-else-if="component.type === 'Space'"
-      :size="component.props.size as string"
-    >
-      <div style="padding: 8px; background: #f5f5f5;">间距示例1</div>
-      <div style="padding: 8px; background: #f5f5f5;">间距示例2</div>
-    </el-space>
-    
+
     <div
       v-else-if="component.type === 'Grid'"
       class="grid-container"
@@ -397,36 +707,73 @@ function handleSelectChange(value: unknown) {
                   :alt="getChildInColumn(i - 1)!.props.alt as string"
                   style="max-width: 100%; height: auto;"
                 />
-                <el-input
-                  v-else-if="getChildInColumn(i - 1)!.type === 'Input'"
-                  :placeholder="getChildInColumn(i - 1)!.props.placeholder as string"
-                  :size="getComponentSize(getChildInColumn(i - 1)!)"
-                  :disabled="checkDisabled(getChildInColumn(i - 1)!)"
-                  style="width: 100%;"
-                />
-                <el-select
-                  v-else-if="getChildInColumn(i - 1)!.type === 'Select'"
-                  :placeholder="getChildInColumn(i - 1)!.props.placeholder as string"
-                  :size="getComponentSize(getChildInColumn(i - 1)!)"
-                  :disabled="checkDisabled(getChildInColumn(i - 1)!)"
-                  style="width: 100%;"
-                >
-                  <el-option
-                    v-for="opt in getChildOptions(getChildInColumn(i - 1)!)"
-                    :key="opt.value"
-                    :label="opt.label"
-                    :value="opt.value"
-                  />
-                </el-select>
-                <el-date-picker
-                  v-else-if="getChildInColumn(i - 1)!.type === 'DatePicker'"
-                  :type="getChildInColumn(i - 1)!.props.type as string"
-                  :range="getChildInColumn(i - 1)!.props.range as boolean"
-                  :placeholder="getChildInColumn(i - 1)!.props.placeholder as string"
-                  :size="getComponentSize(getChildInColumn(i - 1)!)"
-                  :disabled="checkDisabled(getChildInColumn(i - 1)!)"
-                  style="width: 100%;"
-                />
+                <div v-else-if="getChildInColumn(i - 1)!.type === 'Input'" class="form-field" :class="{ 'form-field-vertical': labelPosition === 'top' && !!(getChildInColumn(i - 1)!.props.label as string) }">
+                  <label v-if="getChildInColumn(i - 1)!.props.label" class="form-label" :style="labelPosition === 'top' ? { width: '100%', textAlign: 'left' } : { width: formLabelWidth, flexShrink: 0, textAlign: 'right' }">
+                    <span v-if="getChildInColumn(i - 1)!.props.required" class="required-asterisk">*</span>
+                    {{ getChildInColumn(i - 1)!.props.label }}
+                  </label>
+                  <div class="form-content">
+                    <el-input
+                      :placeholder="getChildInColumn(i - 1)!.props.placeholder as string"
+                      :size="getComponentSize(getChildInColumn(i - 1)!)"
+                      :disabled="checkDisabled(getChildInColumn(i - 1)!)"
+                      style="width: 100%;"
+                    />
+                  </div>
+                </div>
+                <div v-else-if="getChildInColumn(i - 1)!.type === 'Select'" class="form-field" :class="{ 'form-field-vertical': labelPosition === 'top' && !!(getChildInColumn(i - 1)!.props.label as string) }">
+                  <label v-if="getChildInColumn(i - 1)!.props.label" class="form-label" :style="labelPosition === 'top' ? { width: '100%', textAlign: 'left' } : { width: formLabelWidth, flexShrink: 0, textAlign: 'right' }">
+                    <span v-if="getChildInColumn(i - 1)!.props.required" class="required-asterisk">*</span>
+                    {{ getChildInColumn(i - 1)!.props.label }}
+                  </label>
+                  <div class="form-content">
+                    <el-select
+                      :placeholder="getChildInColumn(i - 1)!.props.placeholder as string"
+                      :size="getComponentSize(getChildInColumn(i - 1)!)"
+                      :disabled="checkDisabled(getChildInColumn(i - 1)!)"
+                      style="width: 100%;"
+                    >
+                      <el-option
+                        v-for="opt in getChildOptions(getChildInColumn(i - 1)!)"
+                        :key="opt.value"
+                        :label="opt.label"
+                        :value="opt.value"
+                      />
+                    </el-select>
+                  </div>
+                </div>
+                <div v-else-if="getChildInColumn(i - 1)!.type === 'DatePicker'" class="form-field" :class="{ 'form-field-vertical': labelPosition === 'top' && !!(getChildInColumn(i - 1)!.props.label as string) }">
+                  <label v-if="getChildInColumn(i - 1)!.props.label" class="form-label" :style="labelPosition === 'top' ? { width: '100%', textAlign: 'left' } : { width: formLabelWidth, flexShrink: 0, textAlign: 'right' }">
+                    <span v-if="getChildInColumn(i - 1)!.props.required" class="required-asterisk">*</span>
+                    {{ getChildInColumn(i - 1)!.props.label }}
+                  </label>
+                  <div class="form-content">
+                    <el-date-picker
+                      :type="getChildInColumn(i - 1)!.props.type as string"
+                      :placeholder="getChildInColumn(i - 1)!.props.placeholder as string"
+                      :size="getComponentSize(getChildInColumn(i - 1)!)"
+                      :disabled="checkDisabled(getChildInColumn(i - 1)!)"
+                      style="width: 100%;"
+                    />
+                  </div>
+                </div>
+                <div v-else-if="getChildInColumn(i - 1)!.type === 'DateRangePicker'" class="form-field" :class="{ 'form-field-vertical': labelPosition === 'top' && !!(getChildInColumn(i - 1)!.props.label as string) }">
+                  <label v-if="getChildInColumn(i - 1)!.props.label" class="form-label" :style="labelPosition === 'top' ? { width: '100%', textAlign: 'left' } : { width: formLabelWidth, flexShrink: 0, textAlign: 'right' }">
+                    <span v-if="getChildInColumn(i - 1)!.props.required" class="required-asterisk">*</span>
+                    {{ getChildInColumn(i - 1)!.props.label }}
+                  </label>
+                  <div class="form-content">
+                    <el-date-picker
+                      :type="getChildInColumn(i - 1)!.props.type as string"
+                      :start-placeholder="getChildInColumn(i - 1)!.props.startPlaceholder as string"
+                      :end-placeholder="getChildInColumn(i - 1)!.props.endPlaceholder as string"
+                      :size="getComponentSize(getChildInColumn(i - 1)!)"
+                      :disabled="checkDisabled(getChildInColumn(i - 1)!)"
+                      range-separator="至"
+                      style="width: 100%;"
+                    />
+                  </div>
+                </div>
                 <el-card
                   v-else-if="getChildInColumn(i - 1)!.type === 'Card'"
                   :title="getChildInColumn(i - 1)!.props.title as string"
@@ -609,7 +956,41 @@ function handleSelectChange(value: unknown) {
 }
 
 .form-field {
+  display: flex;
+  align-items: flex-start;
   width: 100%;
+
+  &.form-field-vertical {
+    flex-direction: column;
+
+    .form-label {
+      width: 100% !important;
+      text-align: left !important;
+      margin-bottom: 8px;
+    }
+  }
+}
+
+.form-label {
+  display: inline-flex;
+  align-items: center;
+  padding-right: 12px;
+  font-size: 14px;
+  color: #606266;
+  line-height: 32px;
+  box-sizing: border-box;
+  flex-shrink: 0;
+}
+
+.required-asterisk {
+  color: #f56c6c;
+  margin-right: 4px;
+  font-size: 14px;
+}
+
+.form-content {
+  flex: 1;
+  min-width: 0;
 }
 
 .validation-error {
@@ -617,5 +998,23 @@ function handleSelectChange(value: unknown) {
   margin-top: 4px;
   font-size: 12px;
   color: #f56c6c;
+}
+
+.custom-range-picker {
+  display: flex;
+  align-items: center;
+  width: 100%;
+
+  .range-picker-item {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .range-separator-text {
+    padding: 0 8px;
+    color: #606266;
+    font-size: 14px;
+    flex-shrink: 0;
+  }
 }
 </style>

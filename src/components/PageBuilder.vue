@@ -4,12 +4,16 @@ import { useCanvas } from '@/composables/useCanvas'
 import ComponentPanel from './ComponentPanel.vue'
 import Canvas from './Canvas.vue'
 import PropertyPanel from './PropertyPanel.vue'
+import { generateHtmlExport } from '@/utils/exportGenerator'
+import { generateVue3TsProject, generateVue2Project } from '@/utils/projectGenerator'
 
-const { clearCanvas, globalConfig, setGlobalConfig, getAllFieldValues, validateForm, resetForm } = useCanvas()
+const { components, clearCanvas, globalConfig, setGlobalConfig, getAllFieldValues, validateForm, resetForm } = useCanvas()
 
 const showGlobalConfig = ref(false)
 const showFieldValues = ref(false)
 const showSubmitResult = ref(false)
+const showExportDialog = ref(false)
+const exportFormat = ref<'html' | 'vue2' | 'vue3-ts'>('html')
 const submitResult = ref<{ success: boolean; message: string; errors?: Array<{ fieldName: string; message: string }> }>({ success: false, message: '' })
 
 function handleExport() {
@@ -20,6 +24,29 @@ function handleExport() {
   const a = document.createElement('a')
   a.href = url
   a.download = 'page-config.json'
+  a.click()
+  URL.revokeObjectURL(url)
+}
+
+async function handlePageExport() {
+  if (exportFormat.value === 'html') {
+    const blob = await generateHtmlExport(components.value, globalConfig.value)
+    downloadBlob(blob, 'html-export.zip')
+  } else if (exportFormat.value === 'vue3-ts') {
+    const blob = await generateVue3TsProject(components.value, globalConfig.value)
+    downloadBlob(blob, 'vue3-ts-project.zip')
+  } else if (exportFormat.value === 'vue2') {
+    const blob = await generateVue2Project(components.value, globalConfig.value)
+    downloadBlob(blob, 'vue2-project.zip')
+  }
+  showExportDialog.value = false
+}
+
+function downloadBlob(blob: Blob, filename: string) {
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = filename
   a.click()
   URL.revokeObjectURL(url)
 }
@@ -115,6 +142,10 @@ function handleClear() {
           <i class="el-icon-download"></i>
           <span>导出配置</span>
         </button>
+        <button class="action-btn" @click="showExportDialog = true">
+          <i class="el-icon-upload2"></i>
+          <span>页面导出</span>
+        </button>
         <button class="action-btn danger" @click="handleClear">
           <i class="el-icon-delete"></i>
           <span>清空画布</span>
@@ -138,11 +169,25 @@ function handleClear() {
           <label class="config-label">默认组件大小</label>
           <el-select
             :model-value="globalConfig.defaultSize"
-            @change="setGlobalConfig({ defaultSize: $event })"
+            @change="setGlobalConfig({ defaultSize: $event, labelWidth: globalConfig.labelWidth || 'auto' })"
           >
             <el-option label="小型" value="small" />
             <el-option label="中等" value="medium" />
             <el-option label="大型" value="large" />
+          </el-select>
+        </div>
+        <div class="config-item">
+          <label class="config-label">表单标题宽度</label>
+          <el-select
+            :model-value="globalConfig.labelWidth || 'auto'"
+            @change="setGlobalConfig({ defaultSize: globalConfig.defaultSize, labelWidth: $event })"
+          >
+            <el-option label="自适应" value="auto" />
+            <el-option label="80px" value="80px" />
+            <el-option label="100px" value="100px" />
+            <el-option label="120px" value="120px" />
+            <el-option label="150px" value="150px" />
+            <el-option label="200px" value="200px" />
           </el-select>
         </div>
       </div>
@@ -191,6 +236,32 @@ function handleClear() {
           </ul>
         </div>
       </div>
+    </el-dialog>
+
+    <el-dialog
+      v-model="showExportDialog"
+      title="页面导出"
+      width="400px"
+    >
+      <div class="export-form">
+        <div class="export-item">
+          <label class="export-label">导出格式</label>
+          <el-radio-group v-model="exportFormat">
+            <el-radio label="html">HTML 文件</el-radio>
+            <el-radio label="vue3-ts">Vue3 + TypeScript 项目包</el-radio>
+            <el-radio label="vue2">Vue2 项目包</el-radio>
+          </el-radio-group>
+        </div>
+        <div class="export-tips">
+          <p><strong>HTML 文件</strong>：导出为单个 HTML 文件，包含完整样式和交互功能</p>
+          <p><strong>Vue3 + TS 项目包</strong>：导出为 zip 压缩包，包含完整项目结构，执行 npm install && npm run dev 即可运行</p>
+          <p><strong>Vue2 项目包</strong>：导出为 zip 压缩包，包含完整项目结构，执行 npm install && npm run dev 即可运行</p>
+        </div>
+      </div>
+      <template #footer>
+        <el-button @click="showExportDialog = false">取消</el-button>
+        <el-button type="primary" @click="handlePageExport">确认导出</el-button>
+      </template>
     </el-dialog>
   </div>
 </template>
@@ -402,6 +473,36 @@ function handleClear() {
   
   &:hover {
     background: #66b1ff;
+  }
+}
+
+.export-form {
+  .export-item {
+    margin-bottom: 16px;
+  }
+
+  .export-label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 500;
+    color: #606266;
+  }
+
+  .export-tips {
+    background: #f5f7fa;
+    padding: 12px;
+    border-radius: 4px;
+    font-size: 13px;
+    color: #909399;
+
+    p {
+      margin: 4px 0;
+      line-height: 1.6;
+    }
+
+    strong {
+      color: #606266;
+    }
   }
 }
 </style>

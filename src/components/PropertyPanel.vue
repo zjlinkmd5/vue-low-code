@@ -1,11 +1,13 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
 import { useCanvas } from '@/composables/useCanvas'
-import { getComponentConfig, datePickerTypes, inputTypes, derivedFieldTypes, numberFormats, buttonSubmitTypes } from '@/data/components'
+import { getComponentConfig, datePickerTypes, dateRangePickerTypes, inputTypes, derivedFieldTypes, numberFormats, buttonSubmitTypes, cascaderDataTypes } from '@/data/components'
 import type { DerivedField } from '@/types'
 import ModalDialog from './ModalDialog.vue'
 import StyleEditor from './StyleEditor.vue'
+import CascaderNodeEditor from './CascaderNodeEditor.vue'
 import type { ConditionRule } from '@/types'
+import type { CascaderOption } from '@/data/regionData'
 
 const { selectedComponent, updateComponent, updateFieldBinding, updateVisibility, updateDisabled, updateSelectOptions, fieldNames, components, cleanupAttrNameReferences } = useCanvas()
 
@@ -39,8 +41,10 @@ const showOptionsModal = ref(false)
 const showVisibilityModal = ref(false)
 const showDisabledModal = ref(false)
 const showStyleEditor = ref(false)
+const showCascaderDataModal = ref(false)
 const currentStyle = ref('')
 const fieldBindingError = ref('')
+const editingCascaderData = ref<CascaderOption[]>([])
 
 watch(() => selectedComponent.value, (comp) => {
   if (comp) {
@@ -154,6 +158,22 @@ function openStyleEditor() {
   }
 }
 
+function openCascaderDataModal() {
+  if (selectedComponent.value) {
+    editingCascaderData.value = JSON.parse(JSON.stringify(selectedComponent.value.props.options as CascaderOption[] || []))
+    showCascaderDataModal.value = true
+  }
+}
+
+function addCascaderNode(nodes: CascaderOption[]) {
+  nodes.push({ value: '', label: '新节点' })
+}
+
+function handleCascaderDataSave() {
+  updateProp('options', JSON.parse(JSON.stringify(editingCascaderData.value)))
+  showCascaderDataModal.value = false
+}
+
 const derivedFields = ref<DerivedField[]>([])
 
 watch(() => selectedComponent.value, (comp) => {
@@ -203,6 +223,15 @@ function updateDerivedFields() {
       <div class="property-group">
         <label class="property-label">组件名称</label>
         <div class="property-value">{{ config?.label }}</div>
+      </div>
+
+      <div class="property-group">
+        <label class="property-label">表单标题</label>
+        <el-input
+          v-model="selectedComponent.props.label"
+          @input="updateProp('label', selectedComponent.props.label)"
+          placeholder="输入表单前置标题（留空则不显示）"
+        />
       </div>
       
       <div class="property-group">
@@ -505,7 +534,7 @@ function updateDerivedFields() {
           v-model="selectedComponent.props.placeholder"
           @input="updateProp('placeholder', selectedComponent.props.placeholder)"
         />
-        
+
         <label class="property-label">组件大小</label>
         <el-select
           v-model="selectedComponent.props.size"
@@ -515,7 +544,7 @@ function updateDerivedFields() {
           <el-option label="中等" value="medium" />
           <el-option label="大型" value="large" />
         </el-select>
-        
+
         <label class="property-label">选择类型</label>
         <el-select
           v-model="selectedComponent.props.type"
@@ -523,20 +552,155 @@ function updateDerivedFields() {
         >
           <el-option v-for="t in datePickerTypes" :key="t.value" :label="t.label" :value="t.value" />
         </el-select>
-        
-        <label class="property-label">区间选择</label>
-        <el-switch
-          v-model="selectedComponent.props.range"
-          @change="updateProp('range', $event)"
-        />
-        
+
         <label class="property-label">必填</label>
         <el-switch
           v-model="selectedComponent.props.required"
           @change="updateProp('required', $event)"
         />
       </div>
-      
+
+      <div v-else-if="selectedComponent.type === 'DateRangePicker'" class="property-group">
+        <label class="property-label">开始占位符</label>
+        <el-input
+          v-model="selectedComponent.props.startPlaceholder"
+          @input="updateProp('startPlaceholder', selectedComponent.props.startPlaceholder)"
+        />
+
+        <label class="property-label">结束占位符</label>
+        <el-input
+          v-model="selectedComponent.props.endPlaceholder"
+          @input="updateProp('endPlaceholder', selectedComponent.props.endPlaceholder)"
+        />
+
+        <label class="property-label">组件大小</label>
+        <el-select
+          v-model="selectedComponent.props.size"
+          @change="updateProp('size', $event)"
+        >
+          <el-option label="小型" value="small" />
+          <el-option label="中等" value="medium" />
+          <el-option label="大型" value="large" />
+        </el-select>
+
+        <label class="property-label">选择类型</label>
+        <el-select
+          v-model="selectedComponent.props.type"
+          @change="updateProp('type', $event)"
+        >
+          <el-option v-for="t in dateRangePickerTypes" :key="t.value" :label="t.label" :value="t.value" />
+        </el-select>
+
+        <label class="property-label">必填</label>
+        <el-switch
+          v-model="selectedComponent.props.required"
+          @change="updateProp('required', $event)"
+        />
+      </div>
+
+      <div v-else-if="selectedComponent.type === 'Textarea'" class="property-group">
+        <label class="property-label">占位符</label>
+        <el-input
+          v-model="selectedComponent.props.placeholder"
+          @input="updateProp('placeholder', selectedComponent.props.placeholder)"
+        />
+
+        <label class="property-label">组件大小</label>
+        <el-select
+          v-model="selectedComponent.props.size"
+          @change="updateProp('size', $event)"
+        >
+          <el-option label="小型" value="small" />
+          <el-option label="中等" value="medium" />
+          <el-option label="大型" value="large" />
+        </el-select>
+
+        <label class="property-label">可清除</label>
+        <el-switch
+          v-model="selectedComponent.props.clearable"
+          @change="updateProp('clearable', $event)"
+        />
+
+        <label class="property-label">必填</label>
+        <el-switch
+          v-model="selectedComponent.props.required"
+          @change="updateProp('required', $event)"
+        />
+
+        <label class="property-label">输入类型</label>
+        <el-select
+          v-model="selectedComponent.props.inputType"
+          @change="updateProp('inputType', $event)"
+        >
+          <el-option v-for="t in inputTypes" :key="t.value" :label="t.label" :value="t.value" />
+        </el-select>
+
+        <label class="property-label">最大长度</label>
+        <el-input-number
+          v-model="selectedComponent.props.maxLength"
+          @change="updateProp('maxLength', $event)"
+          :min="0"
+          :placeholder="'不限制'"
+        />
+
+        <label class="property-label">文本域行数</label>
+        <el-input-number
+          v-model="selectedComponent.props.rows"
+          @change="updateProp('rows', $event)"
+          :min="1"
+          :max="20"
+        />
+
+        <label class="property-label">显示字数统计</label>
+        <el-switch
+          v-model="selectedComponent.props.showWordLimit"
+          @change="updateProp('showWordLimit', $event)"
+        />
+      </div>
+
+      <div v-else-if="selectedComponent.type === 'Cascader'" class="property-group">
+        <label class="property-label">占位符</label>
+        <el-input
+          v-model="selectedComponent.props.placeholder"
+          @input="updateProp('placeholder', selectedComponent.props.placeholder)"
+        />
+
+        <label class="property-label">组件大小</label>
+        <el-select
+          v-model="selectedComponent.props.size"
+          @change="updateProp('size', $event)"
+        >
+          <el-option label="小型" value="small" />
+          <el-option label="中等" value="medium" />
+          <el-option label="大型" value="large" />
+        </el-select>
+
+        <label class="property-label">必填</label>
+        <el-switch
+          v-model="selectedComponent.props.required"
+          @change="updateProp('required', $event)"
+        />
+
+        <label class="property-label">数据类型</label>
+        <el-select
+          v-model="selectedComponent.props.dataType"
+          @change="updateProp('dataType', $event)"
+        >
+          <el-option v-for="t in cascaderDataTypes" :key="t.value" :label="t.label" :value="t.value" />
+        </el-select>
+
+        <label v-if="selectedComponent.props.dataType === 'custom'" class="property-label">级联数据</label>
+        <el-button
+          v-if="selectedComponent.props.dataType === 'custom'"
+          size="small"
+          type="primary"
+          @click="openCascaderDataModal"
+          style="width: 100%;"
+        >
+          编辑级联数据
+        </el-button>
+      </div>
+
       <div v-else-if="selectedComponent.type === 'Card'" class="property-group">
         <label class="property-label">卡片标题</label>
         <el-input
@@ -749,6 +913,28 @@ function updateDerivedFields() {
       :current-style="currentStyle"
       @save="handleStyleSave"
     />
+
+    <el-dialog
+      v-model="showCascaderDataModal"
+      title="编辑级联数据"
+      width="600px"
+      append-to-body
+    >
+      <div class="cascader-data-toolbar">
+        <el-button size="small" type="primary" @click="addCascaderNode(editingCascaderData)">+ 添加顶级节点</el-button>
+      </div>
+      <div class="cascader-data-content">
+        <CascaderNodeEditor
+          v-if="editingCascaderData.length > 0"
+          :nodes="editingCascaderData"
+        />
+        <div v-else class="cascader-empty">暂无数据，请添加节点</div>
+      </div>
+      <template #footer>
+        <el-button @click="showCascaderDataModal = false">取消</el-button>
+        <el-button type="primary" @click="handleCascaderDataSave">保存</el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
@@ -909,5 +1095,21 @@ function updateDerivedFields() {
   margin-top: 8px;
   padding-top: 8px;
   border-top: 1px dashed #e9ecef;
+}
+
+.cascader-data-toolbar {
+  margin-bottom: 12px;
+}
+
+.cascader-data-content {
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.cascader-empty {
+  text-align: center;
+  color: #909399;
+  padding: 32px 0;
+  font-size: 14px;
 }
 </style>

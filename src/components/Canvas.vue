@@ -5,7 +5,7 @@ import RenderedComponent from './RenderedComponent.vue'
 
 import Sortable from 'sortablejs'
 
-const { components, selectedId, addComponent, removeComponent, moveComponent, selectComponent, setDragState, findComponent } = useCanvas()
+const { components, selectedId, addComponent, removeComponent, moveComponent, selectComponent, setDragState, findComponent, setCanvasWidth } = useCanvas()
 
 const emit = defineEmits<{
   buttonClick: [submitType: string]
@@ -159,10 +159,23 @@ function initSortable() {
   }
 }
 
+function updateCanvasWidth() {
+  const container = document.querySelector('.canvas-container') as HTMLElement | null
+  if (container) {
+    const rect = container.getBoundingClientRect()
+    const computedStyle = window.getComputedStyle(container)
+    const paddingLeft = parseFloat(computedStyle.paddingLeft) || 0
+    const paddingRight = parseFloat(computedStyle.paddingRight) || 0
+    setCanvasWidth(rect.width - paddingLeft - paddingRight)
+  }
+}
+
 onMounted(() => {
   nextTick(() => {
     initSortable()
+    updateCanvasWidth()
   })
+  window.addEventListener('resize', updateCanvasWidth)
 })
 
 onUnmounted(() => {
@@ -170,6 +183,7 @@ onUnmounted(() => {
     sortableInstance.destroy()
     sortableInstance = null
   }
+  window.removeEventListener('resize', updateCanvasWidth)
 })
 </script>
 

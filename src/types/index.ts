@@ -66,4 +66,5 @@ export interface DragState {
 
 export interface GlobalConfig {
   defaultSize: 'small' | 'medium' | 'large'
+  labelWidth: string
 }

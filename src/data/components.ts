@@ -12,6 +12,7 @@ export const componentList: ComponentConfig[] = [
       fontWeight: 'normal',
       color: '#333333',
       textAlign: 'left',
+      label: '',
       derivedFields: []
     }
   },
@@ -24,6 +25,7 @@ export const componentList: ComponentConfig[] = [
       content: '标题文本',
       level: 1,
       color: '#333333',
+      label: '',
       derivedFields: []
     }
   },
@@ -38,6 +40,7 @@ export const componentList: ComponentConfig[] = [
       size: 'medium',
       round: false,
       submitType: 'none',
+      label: '',
       derivedFields: []
     }
   },
@@ -52,6 +55,7 @@ export const componentList: ComponentConfig[] = [
       width: '300px',
       height: '200px',
       borderRadius: '0px',
+      label: '',
       derivedFields: []
     }
   },
@@ -71,6 +75,29 @@ export const componentList: ComponentConfig[] = [
       maxValue: null,
       minValue: null,
       decimalPlaces: null,
+      label: '',
+      derivedFields: []
+    }
+  },
+  {
+    id: 'textarea',
+    type: 'Textarea',
+    label: '文本域',
+    icon: 'el-icon-document',
+    defaultProps: {
+      placeholder: '请输入内容',
+      size: 'medium',
+      disabled: false,
+      clearable: true,
+      required: false,
+      inputType: 'text',
+      maxLength: null,
+      maxValue: null,
+      minValue: null,
+      decimalPlaces: null,
+      rows: 4,
+      showWordLimit: false,
+      label: '',
       derivedFields: []
     }
   },
@@ -89,6 +116,7 @@ export const componentList: ComponentConfig[] = [
         { label: '选项3', value: '3' }
       ],
       customAttrs: {},
+      label: '',
       derivedFields: []
     }
   },
@@ -101,9 +129,25 @@ export const componentList: ComponentConfig[] = [
       placeholder: '请选择日期',
       size: 'medium',
       type: 'date',
-      range: false,
       disabled: false,
       required: false,
+      label: '',
+      derivedFields: []
+    }
+  },
+  {
+    id: 'date-range-picker',
+    type: 'DateRangePicker',
+    label: '日期区间',
+    icon: 'el-icon-date',
+    defaultProps: {
+      startPlaceholder: '开始日期',
+      endPlaceholder: '结束日期',
+      size: 'medium',
+      type: 'daterange',
+      disabled: false,
+      required: false,
+      label: '',
       derivedFields: []
     }
   },
@@ -115,6 +159,7 @@ export const componentList: ComponentConfig[] = [
     defaultProps: {
       title: '卡片标题',
       shadow: 'hover',
+      label: '',
       derivedFields: []
     }
   },
@@ -126,16 +171,23 @@ export const componentList: ComponentConfig[] = [
     defaultProps: {
       content: '',
       direction: 'horizontal',
+      label: '',
       derivedFields: []
     }
   },
   {
-    id: 'space',
-    type: 'Space',
-    label: '间距',
-    icon: 'el-icon-s-unfold',
+    id: 'cascader',
+    type: 'Cascader',
+    label: '级联选择',
+    icon: 'el-icon-share',
     defaultProps: {
+      placeholder: '请选择',
       size: 'medium',
+      disabled: false,
+      required: false,
+      dataType: 'region',
+      options: [],
+      label: '',
       derivedFields: []
     }
   },
@@ -147,6 +199,7 @@ export const componentList: ComponentConfig[] = [
     defaultProps: {
       columns: 2,
       gutter: 20,
+      label: '',
       derivedFields: []
     }
   }
@@ -158,10 +211,20 @@ export const getComponentConfig = (type: string): ComponentConfig | undefined =>
 
 export const datePickerTypes = [
   { label: '日', value: 'date' },
+  { label: '日期时间', value: 'datetime' },
   { label: '周', value: 'week' },
   { label: '月', value: 'month' },
   { label: '年', value: 'year' },
   { label: '季度', value: 'quarter' }
+]
+
+export const dateRangePickerTypes = [
+  { label: '日期范围', value: 'daterange' },
+  { label: '周范围', value: 'weekrange' },
+  { label: '月范围', value: 'monthrange' },
+  { label: '年范围', value: 'yearrange' },
+  { label: '季度范围', value: 'quarterrange' },
+  { label: '日期时间范围', value: 'datetimerange' }
 ]
 
 export const inputTypes = [
@@ -204,4 +267,9 @@ export const buttonSubmitTypes = [
   { label: '普通按钮', value: 'none' },
   { label: '表单提交（校验必填）', value: 'submit' },
   { label: '表单重置', value: 'reset' }
+]
+
+export const cascaderDataTypes = [
+  { label: '地区', value: 'region' },
+  { label: '自定义', value: 'custom' }
 ]
