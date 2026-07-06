@@ -223,7 +223,7 @@ src/
 
 ### 页面构建器模块
 
-![页面构建器快照](https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=Vue%203%20visual%20page%20builder%20interface%20with%20component%20panel%20on%20left%2C%20canvas%20in%20middle%2C%20property%20panel%20on%20right%2C%20clean%20modern%20UI%20design&image_size=landscape_16_9)
+![页面构建器快照](./docs/screenshots/page-builder.svg)
 
 **功能说明**:
 - 左侧：组件面板，展示所有可用组件
@@ -235,7 +235,7 @@ src/
 
 #### 流程设计器
 
-![流程设计器快照](https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=BPMN%20process%20designer%20interface%20with%20canvas%2C%20palette%20toolbar%20on%20left%2C%20workflow%20nodes%20like%20start%20event%2C%20user%20task%2C%20gateway%2C%20end%20event%2C%20modern%20web%20application&image_size=landscape_16_9)
+![流程设计器快照](./docs/screenshots/bpmn-designer.svg)
 
 **功能说明**:
 - 左侧：工具栏，包含节点工具和操作按钮
@@ -245,7 +245,7 @@ src/
 
 #### 任务操作
 
-![任务操作快照](https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=Workflow%20task%20management%20interface%20with%20user%20selection%20dropdown%2C%20task%20list%20table%20showing%20pending%20completed%20rejected%20status%2C%20action%20buttons%2C%20modern%20UI&image_size=landscape_16_9)
+![任务操作快照](./docs/screenshots/task-operations.svg)
 
 **功能说明**:
 - 用户选择下拉框：筛选不同登录人的任务列表
@@ -255,7 +255,7 @@ src/
 
 #### 流程详情
 
-![流程详情快照](https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=Workflow%20detail%20dialog%20showing%20BPMN%20diagram%20with%20colored%20nodes%20green%20completed%20blue%20pending%20red%20rejected%2C%20legend%20at%20top%2C%20modern%20modal%20design&image_size=landscape_16_9)
+![流程详情快照](./docs/screenshots/workflow-detail.svg)
 
 **功能说明**:
 - 图例说明：已完成（绿色）、当前步骤（蓝色）、待处理（灰色）、已驳回（红色）
@@ -265,7 +265,7 @@ src/
 
 #### 角色管理
 
-![角色管理快照](https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=Role%20management%20interface%20with%20role%20list%20table%2C%20add%20edit%20delete%20buttons%2C%20member%20management%20modal%2C%20clean%20admin%20panel%20design&image_size=landscape_16_9)
+![角色管理快照](./docs/screenshots/role-management.svg)
 
 **功能说明**:
 - 角色列表：展示角色名称、描述、成员数量
@@ -274,7 +274,7 @@ src/
 
 #### 用户管理
 
-![用户管理快照](https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=User%20management%20interface%20with%20user%20list%20table%20showing%20name%20department%20role%20status%2C%20edit%20enable%20disable%20buttons%2C%20modern%20admin%20UI&image_size=landscape_16_9)
+![用户管理快照](./docs/screenshots/user-management.svg)
 
 **功能说明**:
 - 用户列表：展示姓名、部门、角色、状态
@@ -283,7 +283,7 @@ src/
 
 #### 部门管理
 
-![部门管理快照](https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=Department%20management%20interface%20with%20tree%20structure%20displaying%20company%20hierarchy%2C%20search%20functionality%2C%20add%20edit%20delete%20actions%2C%20modern%20enterprise%20UI&image_size=landscape_16_9)
+![部门管理快照](./docs/screenshots/department-management.svg)
 
 **功能说明**:
 - 树形结构：展示部门层级关系
