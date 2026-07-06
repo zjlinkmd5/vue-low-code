@@ -9,11 +9,21 @@
   },
   "dependencies": {
     "@types/sortablejs": "^1.15.9",
+    "@vue-office/docx": "^1.6.3",
+    "@vue-office/excel": "^1.7.14",
+    "@vue-office/pdf": "^2.0.10",
     "@vueuse/core": "^10.9.0",
+    "docx": "^9.7.1",
     "element-plus": "^2.6.1",
+    "jszip": "^3.10.1",
+    "mammoth": "^1.12.0",
     "monaco-editor": "^0.55.1",
+    "pdf-lib": "^1.17.1",
+    "pdfjs-dist": "^4.10.38",
     "sortablejs": "^1.15.7",
-    "vue": "^3.4.21"
+    "vue": "^3.4.21",
+    "vue3-pdfjs": "^0.1.6",
+    "xlsx": "^0.18.5"
   },
   "devDependencies": {
     "@types/node": "^20.12.7",

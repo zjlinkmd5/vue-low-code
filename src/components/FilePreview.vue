@@ -41,6 +41,7 @@ const pdfScale = ref(1)
 const pdfPage = ref(1)
 const pdfNumPages = ref(0)
 const pdfCanvas = ref<HTMLCanvasElement | null>(null)
+let pdfDoc: any = null
 const isDocxEditing = ref(false)
 const pdfAnnotations = ref<PdfAnnotation[]>([])
 const isPdfEditing = ref(false)
@@ -93,10 +94,11 @@ async function renderPdf() {
   }
 
   try {
-    const pdfData = new Uint8Array(selectedFile.value.data)
-    const pdfDoc = await pdfjsLib.getDocument({ data: pdfData }).promise
-    
-    pdfNumPages.value = pdfDoc.numPages
+    if (!pdfDoc) {
+      const pdfData = new Uint8Array(selectedFile.value.data)
+      pdfDoc = await pdfjsLib.getDocument({ data: pdfData }).promise
+      pdfNumPages.value = pdfDoc.numPages
+    }
     
     const page = await pdfDoc.getPage(pdfPage.value)
     const viewport = page.getViewport({ scale: pdfScale.value })
@@ -175,6 +177,10 @@ function parseExcel(data: ArrayBuffer) {
   if (jsonData.length > 0) {
     excelHeaders.value = jsonData[0] as string[]
     excelData.value = jsonData.slice(1) as any[][]
+    
+    for (let col = 0; col < excelHeaders.value.length; col++) {
+      calculateColumnWidth(col)
+    }
   }
 }
 
@@ -285,6 +291,7 @@ function closePreview() {
   docxContent.value = ''
   docxLoading.value = false
   pdfLoading.value = false
+  pdfDoc = null
   isDocxEditing.value = false
   isPdfEditing.value = false
   pdfAnnotations.value = []
