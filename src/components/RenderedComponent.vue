@@ -152,12 +152,6 @@ const pageSize = computed(() => {
   return (props.component.props.pageSize as number) || 10
 })
 
-const showFilePreview = ref(false)
-
-function handleFileSave(file: any) {
-  console.log('File saved:', file)
-}
-
 const useVirtualScroll = computed(() => {
   return listData.value.length > 100
 })
@@ -210,7 +204,9 @@ function handlePageChange(page: number) {
 }
 
 function handlePageSizeChange(size: number) {
-  pageSize.value = size
+  if (props.component.props) {
+    props.component.props.pageSize = size
+  }
   currentPage.value = 1
 }
 

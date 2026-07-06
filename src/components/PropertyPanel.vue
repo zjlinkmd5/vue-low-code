@@ -229,32 +229,6 @@ const listDataJson = computed({
   }
 })
 
-function addListColumn() {
-  if (!selectedComponent.value) return
-  const columns = selectedComponent.value.props.columns as Array<{key: string; label: string; width?: string; sortable?: boolean; sortType?: string}> || []
-  columns.push({
-    key: 'newColumn',
-    label: '新列',
-    width: '150px',
-    sortable: false,
-    sortType: 'string'
-  })
-  updateProp('columns', [...columns])
-}
-
-function removeListColumn(index: number) {
-  if (!selectedComponent.value) return
-  const columns = selectedComponent.value.props.columns as Array<{key: string; label: string; width?: string; sortable?: boolean; sortType?: string}> || []
-  columns.splice(index, 1)
-  updateProp('columns', [...columns])
-}
-
-function updateListColumns() {
-  if (!selectedComponent.value) return
-  const columns = selectedComponent.value.props.columns as Array<{key: string; label: string; width?: string; sortable?: boolean; sortType?: string}> || []
-  updateProp('columns', [...columns])
-}
-
 function updateListData() {
 }
 
